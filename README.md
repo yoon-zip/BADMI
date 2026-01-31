@@ -1,10 +1,11 @@
+<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Badmi – Smash Analyzer</title>
+  <title>badmi | Smash Analyzer</title>
 
-  <!-- Google tag (gtag.js) -->
+  <!-- Google Analytics (GA4) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-CNMTT9RMY8"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -12,6 +13,11 @@
     gtag('js', new Date());
     gtag('config', 'G-CNMTT9RMY8');
   </script>
+
+  <!-- Google AdSense (site-wide loader) -->
+  <script async
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3392083121307952"
+    crossorigin="anonymous"></script>
 
   <style>
     :root{
@@ -43,7 +49,7 @@
     .wrap{
       max-width: 760px;
       margin: 0 auto;
-      padding: 16px 14px 118px; /* space for sticky bar */
+      padding: 16px 14px 118px;
     }
 
     .topbar{
@@ -120,7 +126,6 @@
     .hint{ color: var(--muted); font-size: 13px; line-height:1.5; }
     .small{ color: var(--muted); font-size: 12px; }
 
-    /* Collapsible tips */
     details{
       border: 1px solid var(--stroke);
       border-radius: 14px;
@@ -144,7 +149,7 @@
       line-height:1.55;
     }
 
-    /* Video area: 9:16 for reels */
+    /* Video 9:16 */
     #videoContainer{
       position: relative;
       width: 100%;
@@ -191,7 +196,6 @@
       gap:8px;
     }
 
-    /* Play overlay button */
     .playOverlay{
       position:absolute;
       inset:0;
@@ -217,6 +221,24 @@
     }
     .playOverlay.hidden{ display:none; }
 
+    /* Status line */
+    .statusLine{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .dot{
+      width:10px; height:10px; border-radius:999px;
+      background: rgba(255,255,255,0.35);
+      box-shadow: 0 0 0 6px rgba(255,255,255,0.05);
+    }
+    .dot.live{ background: var(--accent2); box-shadow: 0 0 0 6px rgba(34,197,94,0.18); }
+    .dot.err{ background: var(--danger); box-shadow: 0 0 0 6px rgba(239,68,68,0.18); }
+
     /* Results */
     #results{ display:none; }
     .resultGrid{
@@ -234,6 +256,7 @@
     .metric .label{ color: var(--muted); font-size: 11px; }
     .metric .value{ margin-top: 6px; font-size: 24px; font-weight: 950; }
     .metric .unit{ font-size: 13px; font-weight: 800; color: rgba(255,255,255,0.70); }
+
     .feedbackBox{
       margin-top: 10px;
       padding: 12px;
@@ -255,42 +278,6 @@
       display:block;
     }
 
-    /* Form */
-    #userForm{ display:none; }
-    .formRow{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      margin-top: 10px;
-    }
-    .input{
-      width:100%;
-      padding: 12px;
-      border-radius: 14px;
-      border: 1px solid var(--stroke);
-      background: rgba(0,0,0,0.18);
-      color: var(--text);
-      outline:none;
-      font-size: 14px;
-    }
-    .input::placeholder{ color: rgba(255,255,255,0.40); }
-
-    /* Ranking list */
-    #rankingList{
-      list-style:none;
-      padding:0;
-      margin: 8px 0 0;
-    }
-    #rankingList li{
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,0.04);
-      margin: 8px 0;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
     /* Sticky action bar */
     .actionBar{
       position: fixed;
@@ -307,7 +294,7 @@
       max-width: 760px;
       margin: 0 auto;
       display:grid;
-      grid-template-columns: 1.2fr 0.8fr 0.8fr;
+      grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
     button.action{
@@ -335,29 +322,6 @@
       border: 1px solid var(--stroke);
       color: var(--text);
     }
-    .btn-danger{
-      background: rgba(239,68,68,0.18);
-      border: 1px solid rgba(239,68,68,0.35);
-      color: #fecaca;
-    }
-
-    /* Status line */
-    .statusLine{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 12px;
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-    .dot{
-      width:10px; height:10px; border-radius:999px;
-      background: rgba(255,255,255,0.35);
-      box-shadow: 0 0 0 6px rgba(255,255,255,0.05);
-    }
-    .dot.live{ background: var(--accent2); box-shadow: 0 0 0 6px rgba(34,197,94,0.18); }
-    .dot.err{ background: var(--danger); box-shadow: 0 0 0 6px rgba(239,68,68,0.18); }
 
     @media (min-width: 900px){
       h1{ font-size: 20px; }
@@ -371,7 +335,7 @@
       <div class="titleRow">
         <div class="brand">
           <h1 id="t_title">🏸 배드민턴 스매싱 분석기</h1>
-          <div class="sub" id="t_sub">Reels(세로 9:16) 촬영 권장 · 손목(라켓 헤드) 추정 속도</div>
+          <div class="sub" id="t_sub">세로 촬영 권장(촬영 팁 아래 클릭)</div>
         </div>
 
         <div class="lang-switch" aria-label="language switch">
@@ -387,8 +351,9 @@
       <div class="inner">
         <div class="sectionTitle" id="t_step1">1) 영상 업로드</div>
         <div class="hint" id="t_step1_hint">
-          업로드 후 아래 하단의 <b>분석 준비</b>를 누르고, 영상 위 <b>재생</b> 버튼을 눌러주세요.
-          결과는 영상이 끝나면 <b>최종 점수</b>로만 보여요.
+          업로드 후 아래 하단의 <b>분석 시작</b>을 누르고,
+          신체 분석이 잘 되었나 보고 싶다면 <b>재생</b> 버튼을 눌러주세요.
+          결과는 금방 나와요.
         </div>
 
         <div style="margin-top:10px;">
@@ -397,13 +362,7 @@
 
         <details>
           <summary id="t_tips_title">촬영 팁 보기</summary>
-          <ul class="tips" id="t_tips_list">
-            <li>세로(9:16) 릴스/스토리 촬영 권장</li>
-            <li>전신(발~라켓 팔 손목)이 프레임 안에 들어오게</li>
-            <li>밝은 조명 + 어두운 배경이 인식 안정적</li>
-            <li>측면 또는 45도 각도 추천</li>
-            <li>5~10초, 100MB 이하</li>
-          </ul>
+          <ul class="tips" id="t_tips_list"></ul>
         </details>
 
         <div class="statusLine">
@@ -423,15 +382,15 @@
     <!-- Video -->
     <div class="card">
       <div class="inner">
-        <div class="sectionTitle" id="t_step2">2) 영상 재생 & 피펫</div>
+        <div class="sectionTitle" id="t_step2">2) 하단 ‘분석 시작’ 버튼 누르기</div>
         <div class="hint" id="t_step2_hint">
-          아래에서 분석 준비를 한 다음, 영상 위 <b>재생</b>을 누르면 피펫이 따라다닙니다.
+          영상 가이드에 맞게 찍어주셔야 분석이 잘 되어요.
         </div>
       </div>
 
       <div id="videoContainer">
         <div class="hud">
-          <div class="pill" id="hudPill">⏳ 업로드 후 분석 준비</div>
+          <div class="pill" id="hudPill">⏳ 열심히 분석할 준비 중이에요</div>
         </div>
 
         <button id="playOverlay" class="playOverlay" type="button">
@@ -447,58 +406,18 @@
     <div class="card" id="results">
       <div class="inner" id="resultsInner"></div>
     </div>
-
-    <!-- Ranking form -->
-    <div class="card" id="userForm">
-      <div class="inner">
-        <div class="sectionTitle" id="t_step3">3) 랭킹 등록</div>
-        <div class="hint" id="t_step3_hint">최종 점수를 랭킹에 올릴 수 있어요.</div>
-        <div class="formRow">
-          <input class="input" type="text" id="nickname" placeholder="닉네임" />
-          <input class="input" type="text" id="instagram" placeholder="인스타그램 ID (예: @user)" />
-        </div>
-        <div style="margin-top:10px;">
-          <button class="action btn-primary" id="saveScoreButton" style="width:100%;">🏆 <span id="t_save_rank">등록하기</span></button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Ranking -->
-    <div class="card">
-      <div class="inner">
-        <div class="sectionTitle" id="t_rank_title">랭킹 TOP 10</div>
-        <ul id="rankingList"></ul>
-      </div>
-    </div>
   </div>
 
   <!-- Sticky action bar -->
   <div class="actionBar">
     <div class="actionRow">
-      <button class="action btn-primary" id="prepareButton">⚙️ <span id="t_prepare">분석 준비</span></button>
-      <button class="action btn-danger" id="stopButton" disabled>⏹️ <span id="t_stop">중지</span></button>
+      <button class="action btn-primary" id="startButton">⚙️ <span id="t_start">분석 시작</span></button>
       <button class="action btn-ghost" id="resetButton" disabled>↩️ <span id="t_reset">초기화</span></button>
     </div>
   </div>
 
 <script type="module">
   import { PoseLandmarker, FilesetResolver, DrawingUtils } from "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.0";
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
-
-  // Firebase (keep as provided)
-  const firebaseConfig = {
-    apiKey: "AIzaSyCuv6H6jyABFX3jpBoA13PLMz5hxI_Pbt8",
-    authDomain: "badmi-581a6.firebaseapp.com",
-    databaseURL: "https://badmi-581a6-default-rtdb.firebaseio.com",
-    projectId: "badmi-581a6",
-    storageBucket: "badmi-581a6.firebasestorage.app",
-    messagingSenderId: "272556457679",
-    appId: "1:272556457679:web:3326840f45d7ca2048c1ba",
-    measurementId: "G-CNMTT9RMY8"
-  };
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
 
   // Helpers
   const $ = (id) => document.getElementById(id);
@@ -507,215 +426,170 @@
   }
   function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
 
-  // i18n
+  // i18n (✅ KO 문구 변경사항 기준으로 EN/中文도 동기화)
   const i18n = {
     ko: {
       title: "🏸 배드민턴 스매싱 분석기",
-      sub: "Reels(세로 9:16) 촬영 권장 · 손목(라켓 헤드) 추정 속도",
+      sub: "세로 촬영 권장(촬영 팁 아래 클릭)",
       step1: "1) 영상 업로드",
-      step1_hint: "업로드 후 아래 하단의 분석 준비를 누르고, 영상 위 재생 버튼을 눌러주세요. 결과는 영상이 끝나면 최종 점수로만 보여요.",
+      step1_hint_html:
+        "업로드 후 아래 하단의 <b>분석 시작</b>을 누르고, " +
+        "신체 분석이 잘 되었나 보고 싶다면 <b>재생</b> 버튼을 눌러주세요. " +
+        "결과는 금방 나와요.",
       tips_title: "촬영 팁 보기",
-      step2: "2) 영상 재생 & 피펫",
-      step2_hint: "아래에서 분석 준비를 한 다음, 영상 위 재생을 누르면 피펫이 따라다닙니다.",
+      step2: "2) 하단 ‘분석 시작’ 버튼 누르기",
+      step2_hint: "영상 가이드에 맞게 찍어주셔야 분석이 잘 되어요.",
       play: "재생",
-      prepare: "분석 준비",
-      stop: "중지",
+      start: "분석 시작",
       reset: "초기화",
-      rank_title: "랭킹 TOP 10",
-      step3: "3) 랭킹 등록",
-      step3_hint: "최종 점수를 랭킹에 올릴 수 있어요.",
-      save_rank: "등록하기",
       privacy: "※ 업로드한 영상은 브라우저에서만 처리됩니다.",
-      hud_wait: "⏳ 업로드 후 분석 준비",
+      hud_wait: "⏳ 열심히 분석할 준비 중이에요",
       hud_ready: "✅ 준비 완료! 영상 위 재생을 눌러주세요",
       hud_analyzing: "🔎 분석 중… (끝나면 결과 표시)",
       hud_done: "✅ 분석 완료! 아래 결과 확인",
       status_idle: "대기 중",
-      status_preparing: "준비 중",
       status_ready: "준비 완료",
       status_analyzing: "분석 중",
       status_done: "분석 완료",
-      status_stopped: "중지됨",
       status_initfail: "초기화 실패",
-      result_title: "✅ 최종 분석 결과",
+      status_nofile: "영상이 없어요",
+      result_title: "✅ 분석 결과",
       score: "자세 점수",
-      speed: "추정 속도(손목)",
-      save_story: "📱 스토리 이미지 저장(1080×1920)",
+      speed: "추정 손목 속도",
+      save_story: "📱 스토리 이미지 저장 (1080×1920)",
       feedback_label: "피드백",
       tips_list: [
-        "세로(9:16) 릴스/스토리 촬영 권장",
+        "세로 촬영 권장",
         "전신(발~라켓 팔 손목)이 프레임 안에 들어오게",
         "밝은 조명 + 어두운 배경이 인식 안정적",
-        "측면 또는 45도 각도 추천",
+        "정면 보다는 측면 추천",
         "5~10초, 100MB 이하"
       ],
       alerts: {
         upload: "영상을 업로드하세요.",
         max: "파일 크기는 100MB 이하여야 합니다.",
-        initfail: "PoseLandmarker 초기화 실패. 콘솔(F12) 확인 또는 Chrome 최신 버전 사용을 권장합니다.",
-        playfail: "재생에 실패했어요. 모바일은 사용자 제스처가 필요할 수 있어요.",
-        need_finish: "분석을 먼저 완료해주세요.",
-        need_profile: "닉네임과 인스타그램 ID를 입력하세요.",
-        saved: "등록 완료! 랭킹을 확인하세요."
-      }
+        initfail: "초기화 실패. 브라우저 콘솔(F12) 확인 또는 Chrome 최신 버전 사용을 권장합니다.",
+        playfail: "재생에 실패했어요. 모바일은 사용자 제스처가 필요할 수 있어요."
+      },
+      save_done_title: "✅ 저장 완료!",
+      save_done_body:
+        "스토리 이미지가 저장됐어요.\n\n" +
+        "iPhone: 파일 앱 > 다운로드에서 확인 → 공유 버튼 → 사진에 저장(또는 인스타로 공유)\n" +
+        "Android: 다운로드(Downloads) 폴더에서 확인 → 갤러리에 표시됨(기기별 상이)"
     },
+
     en: {
       title: "🏸 Badminton Smash Analyzer",
-      sub: "Reels (vertical 9:16) recommended · Wrist (racket-head proxy) speed",
+      sub: "Vertical filming recommended (tap Filming Tips below)",
       step1: "1) Upload Video",
-      step1_hint: "Upload a clip, tap Prepare, then press Play on the video. Results show only once the video ends.",
-      tips_title: "Show filming tips",
-      step2: "2) Play & Pipette Overlay",
-      step2_hint: "After Prepare, press Play on the video to see the overlay tracking you.",
+      step1_hint_html:
+        "After uploading, tap <b>Start Analysis</b> at the bottom. " +
+        "If you want to check whether body tracking works well, press <b>Play</b>. " +
+        "Results appear quickly.",
+      tips_title: "Filming Tips",
+      step2: "2) Tap ‘Start Analysis’ at the bottom",
+      step2_hint: "Please follow the filming guide for stable tracking.",
       play: "Play",
-      prepare: "Prepare",
-      stop: "Stop",
+      start: "Start Analysis",
       reset: "Reset",
-      rank_title: "Top 10 Ranking",
-      step3: "3) Submit to Ranking",
-      step3_hint: "You can submit your final score to the leaderboard.",
-      save_rank: "Submit",
-      privacy: "※ Video is processed locally in your browser.",
-      hud_wait: "⏳ Upload then Prepare",
+      privacy: "※ Your video is processed locally in your browser.",
+      hud_wait: "⏳ Getting ready to analyze…",
       hud_ready: "✅ Ready! Press Play on the video",
       hud_analyzing: "🔎 Analyzing… (results after it ends)",
       hud_done: "✅ Done! Check results below",
       status_idle: "Idle",
-      status_preparing: "Preparing",
       status_ready: "Ready",
       status_analyzing: "Analyzing",
       status_done: "Completed",
-      status_stopped: "Stopped",
       status_initfail: "Init failed",
-      result_title: "✅ Final Result",
+      status_nofile: "No video",
+      result_title: "✅ Result",
       score: "Posture Score",
       speed: "Estimated Wrist Speed",
       save_story: "📱 Save Story Image (1080×1920)",
       feedback_label: "Feedback",
       tips_list: [
-        "Vertical 9:16 (Reels/Story) recommended",
+        "Vertical (9:16) recommended",
         "Keep full body in frame (feet → hitting wrist)",
         "Bright lighting + dark background helps tracking",
-        "Side or 45-degree angle recommended",
-        "5–10s clip, under 100MB"
+        "Side view is better than front view",
+        "5–10 seconds, under 100MB"
       ],
       alerts: {
         upload: "Please upload a video.",
         max: "File must be under 100MB.",
-        initfail: "PoseLandmarker init failed. Check console or use latest Chrome.",
-        playfail: "Playback failed. Mobile may require a user gesture.",
-        need_finish: "Please finish analysis first.",
-        need_profile: "Please enter nickname and Instagram ID.",
-        saved: "Submitted! Check the leaderboard."
-      }
+        initfail: "Initialization failed. Check console or use the latest Chrome.",
+        playfail: "Playback failed. Mobile may require a user gesture."
+      },
+      save_done_title: "✅ Saved!",
+      save_done_body:
+        "Your story image has been saved.\n\n" +
+        "iPhone: Files app > Downloads → Share → Save Image (or share to Instagram)\n" +
+        "Android: Check Downloads folder → it may appear in Gallery (varies by device)"
     },
+
     zh: {
       title: "🏸 羽毛球扣杀分析器",
-      sub: "建议竖屏 9:16（Reels/Story）· 手腕（拍头代理）速度",
+      sub: "建议竖屏拍摄（点击下方拍摄提示）",
       step1: "1) 上传视频",
-      step1_hint: "上传后点击“准备分析”，再点视频上的“播放”。结果会在视频结束后一次性显示。",
-      tips_title: "查看拍摄建议",
-      step2: "2) 播放与骨架覆盖",
-      step2_hint: "点击准备分析后，按视频上的播放即可看到骨架跟踪。",
+      step1_hint_html:
+        "上传后点击底部的 <b>开始分析</b>。 " +
+        "如果想确认身体追踪是否正常，请点击 <b>播放</b>。 " +
+        "结果会很快出现。",
+      tips_title: "拍摄提示",
+      step2: "2) 点击底部“开始分析”按钮",
+      step2_hint: "请按拍摄指南录制，识别会更稳定。",
       play: "播放",
-      prepare: "准备分析",
-      stop: "停止",
+      start: "开始分析",
       reset: "重置",
-      rank_title: "排行榜 TOP 10",
-      step3: "3) 提交排行榜",
-      step3_hint: "可将最终分数提交到排行榜。",
-      save_rank: "提交",
-      privacy: "※ 视频在浏览器本地处理。",
-      hud_wait: "⏳ 上传后点击准备分析",
+      privacy: "※ 视频仅在浏览器本地处理。",
+      hud_wait: "⏳ 正在准备分析…",
       hud_ready: "✅ 已就绪！点击视频播放",
       hud_analyzing: "🔎 分析中…（结束后出结果）",
       hud_done: "✅ 完成！查看下方结果",
       status_idle: "待机",
-      status_preparing: "准备中",
       status_ready: "已就绪",
       status_analyzing: "分析中",
       status_done: "已完成",
-      status_stopped: "已停止",
       status_initfail: "初始化失败",
-      result_title: "✅ 最终结果",
+      status_nofile: "未选择视频",
+      result_title: "✅ 分析结果",
       score: "动作评分",
       speed: "估计手腕速度",
       save_story: "📱 保存Story图片 (1080×1920)",
       feedback_label: "反馈",
       tips_list: [
-        "建议竖屏 9:16（Reels/Story）拍摄",
-        "保证全身入镜（脚 → 挥拍手腕）",
-        "明亮光线 + 深色背景有助识别",
-        "建议侧面或45度角拍摄",
+        "建议竖屏拍摄",
+        "全身入镜（脚 → 挥拍手腕）",
+        "明亮光线 + 深色背景更稳定",
+        "侧面比正面更推荐",
         "5–10秒，低于100MB"
       ],
       alerts: {
         upload: "请先上传视频。",
         max: "文件需小于100MB。",
         initfail: "初始化失败。请查看控制台或使用最新版Chrome。",
-        playfail: "播放失败。手机端可能需要用户点击触发播放。",
-        need_finish: "请先完成分析。",
-        need_profile: "请输入昵称与Instagram ID。",
-        saved: "提交成功！查看排行榜。"
-      }
+        playfail: "播放失败。手机端可能需要用户点击触发播放。"
+      },
+      save_done_title: "✅ 已保存！",
+      save_done_body:
+        "Story 图片已保存。\n\n" +
+        "iPhone：文件App > 下载 → 分享 → 存储到照片（或分享到 Instagram）\n" +
+        "Android：查看 Downloads 文件夹 → 可能会显示在相册（因机型而异）"
     }
   };
-
-  let currentLang = "ko";
-  function setLang(lang){
-    currentLang = lang;
-    const t = i18n[lang];
-
-    $("t_title").textContent = t.title;
-    $("t_sub").textContent = t.sub;
-    $("t_step1").textContent = t.step1;
-    $("t_step1_hint").innerHTML = t.step1_hint.replaceAll("분석 준비","<b>분석 준비</b>").replaceAll("재생","<b>재생</b>");
-    $("t_tips_title").textContent = t.tips_title;
-    $("t_step2").textContent = t.step2;
-    $("t_step2_hint").innerHTML = t.step2_hint.replaceAll("Prepare","<b>Prepare</b>").replaceAll("Play","<b>Play</b>").replaceAll("재생","<b>재생</b>");
-    $("t_play").textContent = t.play;
-    $("t_prepare").textContent = t.prepare;
-    $("t_stop").textContent = t.stop;
-    $("t_reset").textContent = t.reset;
-    $("t_rank_title").textContent = t.rank_title;
-    $("t_step3").textContent = t.step3;
-    $("t_step3_hint").textContent = t.step3_hint;
-    $("t_save_rank").textContent = t.save_rank;
-    $("t_privacy").textContent = t.privacy;
-
-    // tips list
-    const tipsUl = $("t_tips_list");
-    tipsUl.innerHTML = "";
-    t.tips_list.forEach(x=>{
-      const li = document.createElement("li");
-      li.textContent = x;
-      tipsUl.appendChild(li);
-    });
-
-    // buttons active
-    document.querySelectorAll(".lang-switch button").forEach(b=>{
-      b.classList.toggle("active", b.dataset.lang === lang);
-    });
-
-    safeGtag("event","change_language",{ lang });
-  }
-  document.querySelectorAll(".lang-switch button").forEach(btn=>{
-    btn.addEventListener("click", ()=> setLang(btn.dataset.lang));
-  });
 
   // UI refs
   const statusDot = $("statusDot");
   const statusText = $("statusText");
   const loadingEl = $("loading");
   const hudPill = $("hudPill");
+  const startBtn = $("startButton");
+  const resetBtn = $("resetButton");
 
   const videoEl = $("video");
   const canvasEl = $("output_canvas");
   const ctx = canvasEl.getContext("2d");
-
-  const prepareBtn = $("prepareButton");
-  const stopBtn = $("stopButton");
-  const resetBtn = $("resetButton");
   const playOverlay = $("playOverlay");
 
   function setStatus(mode, text){
@@ -727,59 +601,111 @@
   function setHUD(text){ hudPill.textContent = text; }
   function setLoading(on){ loadingEl.style.display = on ? "inline" : "none"; }
 
+  // Language
+  let currentLang = "ko";
+  function setLang(lang){
+    currentLang = lang;
+    const t = i18n[lang];
+
+    $("t_title").textContent = t.title;
+    $("t_sub").textContent = t.sub;
+    $("t_step1").textContent = t.step1;
+    $("t_step1_hint").innerHTML = t.step1_hint_html;
+    $("t_tips_title").textContent = t.tips_title;
+    $("t_step2").textContent = t.step2;
+    $("t_step2_hint").textContent = t.step2_hint;
+    $("t_play").textContent = t.play;
+    $("t_start").textContent = t.start;
+    $("t_reset").textContent = t.reset;
+    $("t_privacy").textContent = t.privacy;
+
+    const tipsUl = $("t_tips_list");
+    tipsUl.innerHTML = "";
+    t.tips_list.forEach(x=>{
+      const li = document.createElement("li");
+      li.textContent = x;
+      tipsUl.appendChild(li);
+    });
+
+    document.querySelectorAll(".lang-switch button").forEach(b=>{
+      b.classList.toggle("active", b.dataset.lang === lang);
+    });
+
+    // HUD/Status text도 언어에 맞춰 자연스럽게 업데이트
+    if (!prepared) {
+      setHUD(t.hud_wait);
+      setStatus("", t.status_idle);
+    }
+
+    safeGtag("event","change_language",{ lang });
+  }
+  document.querySelectorAll(".lang-switch button").forEach(btn=>{
+    btn.addEventListener("click", ()=> setLang(btn.dataset.lang));
+  });
+
   // Pose
-  let poseLandmarker;
-  let drawingUtils;
-  let isAnalyzing = false;
+  let poseLandmarker = null;
+  let drawingUtils = null;
   let prepared = false;
+  let isAnalyzing = false;
   let lastVideoTime = -1;
 
-  // Score samples
-  let scoreSamples = [];
-  let finalScore = null;
-
-  // Wrist speed from world landmarks
+  // Speed sampling (world landmarks)
   let lastWrist3d = null;
   let lastTimeSec = null;
   let maxSpeedKmh = 0;
-  let finalSpeed = null;
 
-  // Frame capture for story image
+  // Score samples (simple, stable MVP)
+  let scoreSamples = [];
+
+  // final capture
   let finalPoseFrameUrl = null;
+  let finalScore = 0;
+  let finalSpeed = 0;
 
-  // --- Scoring rubric (simple MVP) ---
-  // 10 points = 5 items x 2 points:
-  // (1) prep posture (2) elbow-up/backswing (3) reach up (4) rotation proxy (5) lower body/balance
-  function calculateScore(landmarks){
+  async function initPoseLandmarker(){
+    try{
+      const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+      );
+      poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task",
+          delegate: "GPU"
+        },
+        runningMode: "VIDEO",
+        numPoses: 1,
+        minPoseDetectionConfidence: 0.3,
+        minPosePresenceConfidence: 0.3,
+        minTrackingConfidence: 0.3,
+        outputWorldLandmarks: true
+      });
+      drawingUtils = new DrawingUtils(ctx);
+      return true;
+    }catch(e){
+      console.error("PoseLandmarker init failed:", e);
+      setStatus("err", i18n[currentLang].status_initfail);
+      alert(i18n[currentLang].alerts.initfail);
+      return false;
+    }
+  }
+
+  function calculateScoreStable(landmarks){
+    // 아주 거친 MVP 스코어(0~10): 너무 튀지 않게 안정성 위주
+    // - 팔꿈치가 어깨보다 지나치게 낮으면 감점
+    // - 무릎이 완전히 펴져 있으면 감점
     let s = 10;
 
-    // indices (right side): shoulder 12, elbow 14, wrist 16, hip 24, left hip 23, left knee 25, left ankle 27
     const shoulder = landmarks[12] || {x:0,y:0};
     const elbow    = landmarks[14] || {x:0,y:0};
-    const wrist    = landmarks[16] || {x:0,y:0};
-    const hip      = landmarks[24] || {x:0,y:0};
+    const hipL     = landmarks[23] || {x:0,y:0};
+    const kneeL    = landmarks[25] || {x:0,y:0};
+    const ankleL   = landmarks[27] || {x:0,y:0};
 
-    // (2) elbow-up proxy: elbow y should not be far below shoulder y in overhead moments
-    // (y smaller = higher in normalized coordinates)
-    if (elbow.y > shoulder.y + 0.08) s -= 2;
-
-    // (3) reach-up proxy: wrist should get above shoulder sometimes; if not, penalize lightly
-    if (wrist.y > shoulder.y - 0.02) s -= 2;
-
-    // (4) rotation proxy: shoulder-hip line angle extreme suggests leaning rather than rotation
-    const torsoAngle = Math.atan2(shoulder.y - hip.y, shoulder.x - hip.x) * 180 / Math.PI;
-    if (Math.abs(torsoAngle) > 25) s -= 2;
-
-    // (5) lower body: left leg angle too straight (risk / less power transfer)
-    const hipL   = landmarks[23] || {x:0,y:0};
-    const kneeL  = landmarks[25] || {x:0,y:0};
-    const ankleL = landmarks[27] || {x:0,y:0};
+    if (elbow.y > shoulder.y + 0.08) s -= 3; // elbow too low
     const legAngle = calculateAngle(hipL, kneeL, ankleL);
-    if (legAngle > 160) s -= 2;
-
-    // (1) prep/balance: if shoulder and hip are too close vertically (crouched/unclear), slight penalty
-    const torsoLen = Math.abs(shoulder.y - hip.y);
-    if (torsoLen < 0.10) s -= 2;
+    if (legAngle > 165) s -= 2; // leg too straight
+    if (legAngle < 75) s -= 1;  // too deep (rare)
 
     return clamp(s, 0, 10);
   }
@@ -797,6 +723,7 @@
 
   function computeFinalScore(){
     if (scoreSamples.length === 0) return 0;
+    // 상위 30% 평균(너무 흔들리지 않게)
     const sorted = [...scoreSamples].sort((a,b)=>b-a);
     const topCount = Math.max(6, Math.floor(sorted.length * 0.30));
     const top = sorted.slice(0, topCount);
@@ -826,95 +753,66 @@
   }
 
   function getFeedback(score, speed){
-    const lang = currentLang;
-    if (lang === "ko"){
+    if (currentLang === "ko"){
       let fb =
-        score >= 8 ? "우수한 자세예요. " :
-        score >= 5 ? "전반적으로 양호하지만 몇 포인트만 다듬으면 더 좋아요. " :
-        "교정 포인트가 있어요. ";
+        score >= 8 ? "좋아요! 자세가 안정적이에요. " :
+        score >= 5 ? "괜찮아요! 몇 포인트만 다듬으면 더 좋아져요. " :
+        "조금만 수정하면 확 좋아질 수 있어요. ";
       fb += `최고 추정 손목 속도는 ${speed}km/h예요. `;
-      fb += "팁: 팔꿈치를 더 높게, 타점을 더 위로, 무릎 굽힘과 중심을 유지해보세요.";
+      fb += "팁: 팔꿈치를 더 높게, 무릎은 살짝 굽히고, 몸 중심을 유지해보세요.";
       return fb;
     }
-    if (lang === "zh"){
+    if (currentLang === "zh"){
       let fb =
-        score >= 8 ? "动作很棒。 " :
-        score >= 5 ? "整体不错，但还有提升空间。 " :
-        "需要一些动作调整。 ";
+        score >= 8 ? "很好！动作很稳定。 " :
+        score >= 5 ? "不错！再调整几个点会更好。 " :
+        "稍微调整就能提升很多。 ";
       fb += `最高估计手腕速度：${speed} km/h。 `;
-      fb += "建议：抬高肘部、提高击球点、屈膝并保持重心稳定。";
+      fb += "建议：抬高肘部、膝盖微屈、保持重心稳定。";
       return fb;
     }
-    // en
+    // EN
     let fb =
-      score >= 8 ? "Great form. " :
-      score >= 5 ? "Good overall, but there’s room to improve. " :
-      "Needs some form adjustment. ";
+      score >= 8 ? "Nice! Your form looks stable. " :
+      score >= 5 ? "Good! A few tweaks will make it better. " :
+      "A couple of adjustments can help a lot. ";
     fb += `Peak estimated wrist speed: ${speed} km/h. `;
-    fb += "Tip: keep elbow higher, reach up at contact, and maintain knee bend + balance.";
+    fb += "Tip: keep your elbow higher, bend knees slightly, and stay balanced.";
     return fb;
   }
 
-  async function initPoseLandmarker(){
-    try{
-      const vision = await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
-      );
-      poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task",
-          delegate: "GPU",
-        },
-        runningMode: "VIDEO",
-        numPoses: 1,
-        minPoseDetectionConfidence: 0.3,
-        minPosePresenceConfidence: 0.3,
-        minTrackingConfidence: 0.3,
-        outputWorldLandmarks: true
-      });
-      drawingUtils = new DrawingUtils(ctx);
-      return true;
-    }catch(e){
-      console.error("PoseLandmarker init failed:", e);
-      setStatus("err", i18n[currentLang].status_initfail);
-      alert(i18n[currentLang].alerts.initfail);
-      return false;
-    }
-  }
-
-  async function prepareAnalysis(){
+  // Prepare / Load video
+  async function startAnalysis(){
+    const t = i18n[currentLang];
     const file = $("videoUpload").files[0];
-    if (!file){ alert(i18n[currentLang].alerts.upload); return; }
-    if (file.size > 100 * 1024 * 1024){ alert(i18n[currentLang].alerts.max); return; }
+    if (!file){ alert(t.alerts.upload); setStatus("err", t.status_nofile); return; }
+    if (file.size > 100 * 1024 * 1024){ alert(t.alerts.max); return; }
 
-    // reset
+    // reset session
     prepared = false;
     isAnalyzing = false;
     lastVideoTime = -1;
     scoreSamples = [];
-    finalScore = null;
     lastWrist3d = null;
     lastTimeSec = null;
     maxSpeedKmh = 0;
-    finalSpeed = null;
     finalPoseFrameUrl = null;
 
     $("results").style.display = "none";
-    $("userForm").style.display = "none";
     playOverlay.classList.remove("hidden");
 
-    setStatus("live", i18n[currentLang].status_preparing);
-    setHUD(i18n[currentLang].hud_wait);
+    setHUD(t.hud_wait);
+    setStatus("live", t.status_analyzing);
     setLoading(true);
 
-    safeGtag("event","analysis_prepare");
+    safeGtag("event","analysis_start_click",{ lang: currentLang });
 
     if (!poseLandmarker){
       const ok = await initPoseLandmarker();
       if (!ok){ setLoading(false); return; }
     }
 
-    // load video (no autoplay; user presses play)
+    // load video
     const src = URL.createObjectURL(file);
     videoEl.src = src;
     videoEl.load();
@@ -925,15 +823,34 @@
 
       prepared = true;
       setLoading(false);
-      setStatus("live", i18n[currentLang].status_ready);
-      setHUD(i18n[currentLang].hud_ready);
+      setStatus("live", t.status_ready);
+      setHUD(t.hud_ready);
 
-      prepareBtn.disabled = true;
-      stopBtn.disabled = false;
       resetBtn.disabled = false;
-
-      safeGtag("event","analysis_ready");
+      safeGtag("event","analysis_ready",{ lang: currentLang });
     };
+  }
+
+  // Play + analyze loop
+  async function startPlayback(){
+    const t = i18n[currentLang];
+    if (!prepared) return;
+
+    try{
+      await videoEl.play();
+      playOverlay.classList.add("hidden");
+
+      isAnalyzing = true;
+      setStatus("live", t.status_analyzing);
+      setHUD(t.hud_analyzing);
+      setLoading(true);
+
+      safeGtag("event","video_play",{ lang: currentLang });
+      requestAnimationFrame(analyzeLoop);
+    }catch(e){
+      console.error(e);
+      alert(t.alerts.playfail);
+    }
   }
 
   async function analyzeLoop(){
@@ -952,17 +869,13 @@
 
     try{
       const results = await poseLandmarker.detectForVideo(videoEl, nowInMs);
-
       if (results.landmarks && results.landmarks.length > 0){
         const lm = results.landmarks[0];
 
         drawingUtils.drawLandmarks(lm, { color:"#ff4d4d", radius:4 });
         drawingUtils.drawConnectors(lm, PoseLandmarker.POSE_CONNECTIONS, { color:"#22c55e", lineWidth:2 });
 
-        // scoring samples
-        scoreSamples.push(calculateScore(lm));
-
-        // wrist speed samples (world)
+        scoreSamples.push(calculateScoreStable(lm));
         sampleWristSpeedFromWorld(results);
       }
     }catch(e){
@@ -973,81 +886,25 @@
     requestAnimationFrame(analyzeLoop);
   }
 
-  async function startPlaybackAndAnalysis(){
-    if (!prepared){
-      // if user didn't press prepare, guide
-      return;
-    }
-    try{
-      await videoEl.play();
-      playOverlay.classList.add("hidden");
-
-      isAnalyzing = true;
-      setStatus("live", i18n[currentLang].status_analyzing);
-      setHUD(i18n[currentLang].hud_analyzing);
-      setLoading(true);
-
-      safeGtag("event","analysis_start");
-      requestAnimationFrame(analyzeLoop);
-    }catch(e){
-      console.error(e);
-      alert(i18n[currentLang].alerts.playfail);
-    }
-  }
-
-  function stopAnalysis(){
-    isAnalyzing = false;
-    setLoading(false);
-    setStatus("err", i18n[currentLang].status_stopped);
-    setHUD(i18n[currentLang].hud_wait);
-    playOverlay.classList.remove("hidden");
-    safeGtag("event","analysis_stop");
-  }
-
-  function resetAll(){
-    stopAnalysis();
-    prepared = false;
-
-    ctx.clearRect(0,0,canvasEl.width, canvasEl.height);
-    videoEl.pause();
-    videoEl.src = "";
-
-    $("videoUpload").value = "";
-    $("results").style.display = "none";
-    $("userForm").style.display = "none";
-
-    prepareBtn.disabled = false;
-    stopBtn.disabled = true;
-    resetBtn.disabled = true;
-
-    setStatus("", i18n[currentLang].status_idle);
-    setHUD(i18n[currentLang].hud_wait);
-  }
-
   function finishAnalysis(){
-    if (!prepared) return;
+    const t = i18n[currentLang];
+
     isAnalyzing = false;
     setLoading(false);
 
     finalScore = computeFinalScore();
     finalSpeed = maxSpeedKmh || 0;
-
-    // capture the current overlay frame (video + landmarks already drawn on canvas)
     finalPoseFrameUrl = canvasEl.toDataURL("image/png");
 
     const feedback = getFeedback(finalScore, finalSpeed);
     renderResults(finalScore, finalSpeed, feedback, finalPoseFrameUrl);
 
     $("results").style.display = "block";
-    $("userForm").style.display = "block";
+    setStatus("live", t.status_done);
+    setHUD(t.hud_done);
 
-    setStatus("live", i18n[currentLang].status_done);
-    setHUD(i18n[currentLang].hud_done);
-
-    // scroll to results for mobile delight
     $("results").scrollIntoView({ behavior:"smooth", block:"start" });
-
-    safeGtag("event","analysis_complete",{ score: finalScore, speed: finalSpeed });
+    safeGtag("event","analysis_complete",{ score: finalScore, speed: finalSpeed, lang: currentLang });
   }
 
   function renderResults(score, speed, feedback, poseFrameUrl){
@@ -1082,23 +939,19 @@
     `;
 
     $("downloadStoryButton").addEventListener("click", async () => {
-      await downloadStoryImage({
-        poseFrameUrl,
-        score,
-        speed,
-        feedback
-      });
+      await downloadStoryImage({ poseFrameUrl, score, speed, feedback });
     });
   }
 
-  // --- Story image (1080x1920) generation ---
+  // Story image generator (1080x1920)
   async function downloadStoryImage({ poseFrameUrl, score, speed, feedback }){
+    const t = i18n[currentLang];
     const W = 1080, H = 1920;
     const out = document.createElement("canvas");
     out.width = W; out.height = H;
     const c = out.getContext("2d");
 
-    // background gradient
+    // bg
     const g = c.createLinearGradient(0,0,W,H);
     g.addColorStop(0, "#0b1020");
     g.addColorStop(1, "#1b1450");
@@ -1108,11 +961,14 @@
     // title
     c.fillStyle = "rgba(255,255,255,0.92)";
     c.font = "900 54px system-ui, -apple-system, Segoe UI, Roboto";
-    c.fillText(currentLang === "ko" ? "🏸 스매싱 분석 결과" :
-               currentLang === "zh" ? "🏸 扣杀分析结果" :
-               "🏸 Smash Analysis", 70, 140);
+    c.fillText(
+      currentLang === "ko" ? "🏸 스매싱 분석 결과" :
+      currentLang === "zh" ? "🏸 扣杀分析结果" :
+      "🏸 Smash Analysis",
+      70, 140
+    );
 
-    // frame card (9:16 area)
+    // frame
     const img = await loadImage(poseFrameUrl);
     const cardX = 70, cardY = 210, cardW = 940, cardH = 1040;
 
@@ -1123,7 +979,7 @@
     c.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, cardX, cardY, cardW, cardH);
     c.restore();
 
-    // pill boxes
+    // pills
     drawPill(c, 70, 1320, 450, 150,
       currentLang === "ko" ? `자세 점수  ${score}/10` :
       currentLang === "zh" ? `动作评分  ${score}/10` :
@@ -1151,6 +1007,11 @@
     link.click();
 
     safeGtag("event","download_story_image",{ score, speed, lang: currentLang });
+
+    // ✅ 저장 완료 팝업 + 갤러리/파일 안내
+    setTimeout(() => {
+      alert(`${t.save_done_title}\n\n${t.save_done_body}`);
+    }, 50);
   }
 
   function loadImage(src){
@@ -1219,53 +1080,6 @@
     if (lines < maxLines) ctx.fillText(line.trim(), x, y + lines*lineHeight);
   }
 
-  // Ranking submit
-  function saveScore(){
-    const nickname = $("nickname").value.trim();
-    const instagram = $("instagram").value.trim();
-    if (!nickname || !instagram){
-      alert(i18n[currentLang].alerts.need_profile);
-      return;
-    }
-    if (finalScore === null){
-      alert(i18n[currentLang].alerts.need_finish);
-      return;
-    }
-
-    const data = {
-      score: finalScore,
-      speed: finalSpeed ?? maxSpeedKmh ?? 0,
-      nickname,
-      instagram,
-      timestamp: Date.now()
-    };
-
-    push(ref(db, "scores"), data)
-      .then(() => {
-        alert(i18n[currentLang].alerts.saved);
-        $("userForm").style.display = "none";
-        safeGtag("event","save_score",{ score: finalScore, speed: data.speed, lang: currentLang });
-      })
-      .catch(e => {
-        console.error("Failed to save score:", e);
-        alert("랭킹 등록 실패. 콘솔을 확인하세요.");
-      });
-  }
-
-  // Ranking fetch
-  onValue(ref(db, "scores"), snapshot => {
-    const list = $("rankingList");
-    list.innerHTML = "";
-    const ranks = [];
-    snapshot.forEach(child => ranks.push(child.val()));
-    ranks.sort((a,b)=> (b.score - a.score) || ((b.speed||0) - (a.speed||0)) || (b.timestamp - a.timestamp));
-    ranks.slice(0,10).forEach((r, i) => {
-      const li = document.createElement("li");
-      li.textContent = `${i+1}위: ${r.nickname} (${r.instagram}) - 점수: ${r.score}${r.speed ? ` / 속도: ${r.speed}km/h` : ""}`;
-      list.appendChild(li);
-    });
-  }, err => console.error("Failed to fetch rankings:", err));
-
   // Events
   $("videoUpload").addEventListener("change", (e) => {
     const file = e.target.files[0];
@@ -1274,48 +1088,52 @@
       e.target.value = "";
       return;
     }
-    resetBtn.disabled = !e.target.files[0];
     safeGtag("event","video_upload",{ lang: currentLang });
   });
 
-  prepareBtn.addEventListener("click", prepareAnalysis);
-  stopBtn.addEventListener("click", stopAnalysis);
-  resetBtn.addEventListener("click", resetAll);
-  $("saveScoreButton").addEventListener("click", saveScore);
+  startBtn.addEventListener("click", startAnalysis);
+  resetBtn.addEventListener("click", () => {
+    // reset everything
+    isAnalyzing = false;
+    prepared = false;
+    scoreSamples = [];
+    maxSpeedKmh = 0;
+    lastWrist3d = null;
+    lastTimeSec = null;
+    finalPoseFrameUrl = null;
 
-  playOverlay.addEventListener("click", startPlaybackAndAnalysis);
+    ctx.clearRect(0,0,canvasEl.width, canvasEl.height);
+    videoEl.pause();
+    videoEl.src = "";
 
-  // video end triggers finish
+    $("videoUpload").value = "";
+    $("results").style.display = "none";
+    playOverlay.classList.remove("hidden");
+    resetBtn.disabled = true;
+
+    const t = i18n[currentLang];
+    setHUD(t.hud_wait);
+    setStatus("", t.status_idle);
+    setLoading(false);
+
+    safeGtag("event","reset",{ lang: currentLang });
+  });
+
+  playOverlay.addEventListener("click", startPlayback);
+
   videoEl.addEventListener("ended", () => {
-    // capture final overlay frame already drawn on canvas at last loop tick
-    finalSpeed = maxSpeedKmh || 0;
-    finishAnalysis();
+    if (prepared) finishAnalysis();
     playOverlay.classList.remove("hidden");
   });
 
   videoEl.addEventListener("pause", () => {
-    if (isAnalyzing){
-      isAnalyzing = false;
-      setLoading(false);
-      setStatus("live", i18n[currentLang].status_ready);
-      setHUD(i18n[currentLang].hud_ready);
-    }
     playOverlay.classList.remove("hidden");
   });
 
-  videoEl.addEventListener("play", () => {
-    // keep overlay hidden during play
-    playOverlay.classList.add("hidden");
-  });
-
-  // Initial UI
+  // Init UI
   setLang("ko");
-  setStatus("", i18n[currentLang].status_idle);
-  setHUD(i18n[currentLang].hud_wait);
   setLoading(false);
-  stopBtn.disabled = true;
   resetBtn.disabled = true;
-
 </script>
 </body>
 </html>
