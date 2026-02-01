@@ -415,10 +415,12 @@
         <div class="row" style="flex-direction:column; align-items:stretch;">
           <input class="nick" id="rankNickTop" maxlength="20" placeholder="이름 (예: 윤서)" />
           <input class="nick" id="rankInstaTop" maxlength="30" placeholder="인스타 아이디 (예: @yoondminton)" />
+
           <div class="rankTopActions">
             <button class="action btn-ghost" id="rankRefreshTop" style="width:100%;">🔄 새로고침</button>
+            <!-- ✅ 이 버튼이 없어서 setLang에서 JS 터졌음 -->
+            <button class="action btn-primary" id="rankSubmitTop" style="width:100%;">🏆 랭킹 등록</button>
           </div>
-
         </div>
 
         <div id="rankAreaTop" style="margin-top:10px;">
@@ -600,84 +602,82 @@
     return await jsonp(url);
   }
 
-function renderRankTable(top20, me){
-  const hasMore = (top20 || []).length > 5;
+  function renderRankTable(top20, me){
+    const hasMore = (top20 || []).length > 5;
 
-  const rows = (top20 || []).map(r => {
-    const isExtra = r.rank > 5;
+    const rows = (top20 || []).map(r => {
+      const isExtra = r.rank > 5;
+      return `
+        <tr class="${(me && me.rank === r.rank ? "meRow " : "") + (isExtra ? "rankRowExtra" : "")}" ${isExtra ? 'style="display:none;"' : ""}>
+          <td>#${r.rank}</td>
+          <td>${escapeHtml(r.nick)}</td>
+          <td>${escapeHtml(r.insta)}</td>
+          <td>${fixed1(r.score)}</td>
+          <td>${fixed1(r.speed)}</td>
+        </tr>
+      `;
+    }).join("");
+
+    const meRow = me && (me.nick || me.insta) ? `
+      <div class="rankHint" style="margin-top:10px;">
+        <b>${currentLang==="ko" ? "내 기록" : currentLang==="zh" ? "我的记录" : "My record"}</b> :
+        ${me.rank ? `#${me.rank}` : (currentLang==="ko" ? "오늘 기록 없음" : currentLang==="zh" ? "今天没有记录" : "No record today")}
+        ${me.score != null ? ` · ${currentLang==="ko" ? "점수" : currentLang==="zh" ? "评分" : "Score"} ${fixed1(me.score)}` : ""}
+        ${me.speed != null ? ` · ${currentLang==="ko" ? "속도" : currentLang==="zh" ? "速度" : "Speed"} ${fixed1(me.speed)} km/h` : ""}
+      </div>
+    ` : "";
+
+    const toggleBtn = hasMore ? `
+      <div style="margin-top:10px;">
+        <button class="action btn-ghost" id="rankToggleBtn" style="width:100%;">+</button>
+      </div>
+    ` : "";
+
     return `
-      <tr class="${(me && me.rank === r.rank ? "meRow " : "") + (isExtra ? "rankRowExtra" : "")}" ${isExtra ? 'style="display:none;"' : ""}>
-        <td>#${r.rank}</td>
-        <td>${escapeHtml(r.nick)}</td>
-        <td>${escapeHtml(r.insta)}</td>
-        <td>${fixed1(r.score)}</td>
-        <td>${fixed1(r.speed)}</td>
-      </tr>
+      <div class="rankBox">
+        <div class="rankTitle">🏆 TOP 20</div>
+        <table class="rank">
+          <thead>
+            <tr>
+              <th>${currentLang==="ko" ? "순위" : currentLang==="zh" ? "排名" : "Rank"}</th>
+              <th>${currentLang==="ko" ? "이름" : currentLang==="zh" ? "姓名" : "Name"}</th>
+              <th>Insta</th>
+              <th>${currentLang==="ko" ? "점수(10)" : currentLang==="zh" ? "评分(10)" : "Score(10)"}</th>
+              <th>${currentLang==="ko" ? "속도(km/h)" : currentLang==="zh" ? "速度(km/h)" : "Speed(km/h)"}</th>
+            </tr>
+          </thead>
+          <tbody>${rows || `<tr><td colspan="5">${currentLang==="ko" ? "아직 등록된 기록이 없어요!" : currentLang==="zh" ? "还没有记录！" : "No records yet!"}</td></tr>`}</tbody>
+        </table>
+        ${toggleBtn}
+        ${meRow}
+      </div>
     `;
-  }).join("");
+  }
 
   function attachRankToggle(containerId){
     const root = document.getElementById(containerId);
     if (!root) return;
-  
+
     const btn = root.querySelector("#rankToggleBtn");
     if (!btn) return;
-  
+
     const extras = Array.from(root.querySelectorAll("tr.rankRowExtra"));
     let expanded = false;
-  
+
     function label(){
       if (currentLang === "ko") return expanded ? "▲ TOP 5만 보기" : "▼ TOP 20 펼치기";
       if (currentLang === "zh") return expanded ? "▲ 只看TOP5" : "▼ 展开TOP20";
       return expanded ? "▲ Show Top 5" : "▼ Show Top 20";
     }
-  
+
     btn.textContent = label();
-  
+
     btn.onclick = () => {
       expanded = !expanded;
       extras.forEach(tr => tr.style.display = expanded ? "" : "none");
       btn.textContent = label();
     };
   }
-
-
-  const meRow = me && (me.nick || me.insta) ? `
-    <div class="rankHint" style="margin-top:10px;">
-      <b>내 기록</b> :
-      ${me.rank ? `#${me.rank}위` : "오늘 기록 없음"}
-      ${me.score != null ? ` · 점수 ${fixed1(me.score)}` : ""}
-      ${me.speed != null ? ` · 속도 ${fixed1(me.speed)} km/h` : ""}
-    </div>
-  ` : "";
-
-  const toggleBtn = hasMore ? `
-    <div style="margin-top:10px;">
-      <button class="action btn-ghost" id="rankToggleBtn" style="width:100%;">+</button>
-    </div>
-  ` : "";
-
-  return `
-    <div class="rankBox">
-      <div class="rankTitle">🏆 TOP 20</div>
-      <table class="rank">
-        <thead>
-          <tr>
-            <th>순위</th>
-            <th>이름</th>
-            <th>인스타</th>
-            <th>점수(10)</th>
-            <th>속도(km/h)</th>
-          </tr>
-        </thead>
-        <tbody>${rows || `<tr><td colspan="5">아직 등록된 기록이 없어요!</td></tr>`}</tbody>
-      </table>
-      ${toggleBtn}
-      ${meRow}
-    </div>
-  `;
-}
-
 
   /************ ✅ i18n ************/
   const i18n = {
@@ -900,7 +900,10 @@ function renderRankTable(top20, me){
     $("t_rank_loading").textContent = t.rank_loading;
     $("t_rank_hint").textContent = t.rank_hint;
     $("rankRefreshTop").textContent = "🔄 " + t.rank_refresh;
-    $("rankSubmitTop").textContent = "🏆 " + t.rank_submit;
+
+    // ✅ rankSubmitTop null-safe
+    const topSubmitBtn = $("rankSubmitTop");
+    if (topSubmitBtn) topSubmitBtn.textContent = "🏆 " + t.rank_submit;
 
     // placeholders
     $("rankNickTop").placeholder =
@@ -920,15 +923,12 @@ function renderRankTable(top20, me){
       b.classList.toggle("active", b.dataset.lang === lang);
     });
 
-    // HUD/Status text도 언어에 맞춰 자연스럽게 업데이트
     if (!prepared) {
       setHUD(t.hud_wait);
       setStatus("", t.status_idle);
     }
 
-    // 랭킹 UI도 언어 바뀌면 즉시 재조회(표 헤더는 KO 고정이지만 내용/메시지 갱신)
     refreshTop20();
-
     safeGtag("event","change_language",{ lang });
   }
   document.querySelectorAll(".lang-switch button").forEach(btn=>{
@@ -951,18 +951,16 @@ function renderRankTable(top20, me){
   async function refreshTop20(){
     const t = i18n[currentLang];
     const date = todayStr();
-
     const nick = $("rankNickTop").value.trim();
     const insta = normalizeInsta($("rankInstaTop").value.trim());
 
     $("rankAreaTop").innerHTML = `<div class="rankBox">${t.rank_loading}</div>`;
-    attachRankToggle("rankAreaTop");
-
 
     try{
       const data = await apiTop(date, nick, insta);
       if (!data || !data.ok) throw new Error(data?.error || "top failed");
       $("rankAreaTop").innerHTML = renderRankTable(data.top20, data.me);
+      attachRankToggle("rankAreaTop"); // ✅ 렌더 후 연결
     }catch(e){
       console.error(e);
       $("rankAreaTop").innerHTML = `<div class="rankBox">${t.alerts.rank_fail}</div>`;
@@ -977,55 +975,47 @@ function renderRankTable(top20, me){
     if (!nick) return alert(t.alerts.need_name);
     if (!insta) return alert(t.alerts.need_insta);
 
-    // ✅ 분석 결과가 있어야 제출 가능
     if (!window.BADMI_RESULT || !isFinite(window.BADMI_RESULT.score) || !isFinite(window.BADMI_RESULT.speed)){
       return alert(t.alerts.need_result);
     }
 
     const score = round1(window.BADMI_RESULT.score);
     const speed = round1(window.BADMI_RESULT.speed);
-
     saveRankInputs(nick, insta);
 
-    try{
-      const btn = document.getElementById("rankSubmitBottom") || document.getElementById("rankSubmitTop");
+    const btn = document.getElementById("rankSubmitBottom") || document.getElementById("rankSubmitTop");
 
-      try{
-        if (btn){
-          btn.disabled = true;
-          btn.textContent = "⏳ ...";
-        }
-      
-        const date = todayStr();
-        const data = await apiSubmit(date, nick, insta, score, speed);
-        if (!data || !data.ok) throw new Error(data?.error || "submit failed");
-      
-        if (data.top20) {
-          $("rankAreaTop").innerHTML = renderRankTable(data.top20, data.me);
-          attachRankToggle("rankAreaTop");
-        } else {
-          await refreshTop20();
-        }
-      
-        safeGtag("event","rank_submit",{ lang: currentLang, score, speed });
-      }catch(e){
-        console.error(e);
-        alert(t.alerts.rank_fail);
-      }finally{
-        if (btn){
-          btn.disabled = false;
-          btn.textContent = "🏆 " + t.rank_submit;
-        }
+    try{
+      if (btn){
+        btn.disabled = true;
+        btn.textContent = "⏳ ...";
       }
 
+      const date = todayStr();
+      const data = await apiSubmit(date, nick, insta, score, speed);
+      if (!data || !data.ok) throw new Error(data?.error || "submit failed");
+
+      if (data.top20) {
+        $("rankAreaTop").innerHTML = renderRankTable(data.top20, data.me);
+        attachRankToggle("rankAreaTop");
+      } else {
+        await refreshTop20();
+      }
+
+      safeGtag("event","rank_submit",{ lang: currentLang, score, speed });
+    }catch(e){
+      console.error(e);
+      alert(t.alerts.rank_fail);
+    }finally{
+      if (btn){
+        btn.disabled = false;
+        btn.textContent = "🏆 " + t.rank_submit;
+      }
+    }
   }
 
-$("rankRefreshTop").addEventListener("click", refreshTop20);
-
-const _rankSubmitTop = $("rankSubmitTop");
-if (_rankSubmitTop) _rankSubmitTop.addEventListener("click", submitTopRank);
-
-$("rankSubmitTop").addEventListener("click", submitTopRank);
+  $("rankRefreshTop").addEventListener("click", refreshTop20);
+  $("rankSubmitTop").addEventListener("click", submitTopRank);
 
   /************ ✅ Pose / Analysis ************/
   let poseLandmarker = null;
@@ -1087,69 +1077,59 @@ $("rankSubmitTop").addEventListener("click", submitTopRank);
 
   function calculateScoreStrict(landmarks){
     let s = 10;
-  
+
     const shoulderR = landmarks[12];
     const elbowR    = landmarks[14];
     const wristR    = landmarks[16];
-  
+
     const hipL   = landmarks[23];
     const kneeL  = landmarks[25];
     const ankleL = landmarks[27];
-  
+
     const hipR   = landmarks[24];
     const kneeR  = landmarks[26];
     const ankleR = landmarks[28];
-  
-    // 랜드마크 부족하면 짜게: 바로 감점
+
     if (!shoulderR || !elbowR || !wristR) s -= 2.0;
     if (!hipL || !kneeL || !ankleL || !hipR || !kneeR || !ankleR) s -= 2.0;
-  
-    // 1) 팔꿈치 낮음 (구간별, 더 나쁠수록 더 크게)
+
     if (shoulderR && elbowR){
       if (elbowR.y > shoulderR.y + 0.12) s -= 4.5;
       else if (elbowR.y > shoulderR.y + 0.06) s -= 2.5;
     }
-  
-    // 2) 손목 떨어짐(스윙 약함) - 기준을 더 빡세게
+
     if (wristR && elbowR){
       const wristDrop = wristR.y - elbowR.y;
       if (wristDrop > 0.10) s -= 1.2;
-      if (wristDrop > 0.14) s -= 1.0; // 추가 감점(진짜 떨어진 경우)
+      if (wristDrop > 0.14) s -= 1.0;
     }
-  
-    // 3) 무릎 각도 (더 빡세게)
+
     const legAngleL = (hipL && kneeL && ankleL) ? calculateAngle(hipL, kneeL, ankleL) : null;
     const legAngleR = (hipR && kneeR && ankleR) ? calculateAngle(hipR, kneeR, ankleR) : null;
     const legAngle =
       (legAngleL != null && legAngleR != null) ? (legAngleL + legAngleR)/2 :
       (legAngleL ?? legAngleR);
-  
+
     if (legAngle != null){
       if (legAngle > 168) s -= 3.5;
       else if (legAngle > 160) s -= 2.5;
       else if (legAngle > 150) s -= 1.5;
-      else if (legAngle > 145) s -= 0.8; // “애매한 굽힘”도 감점
+      else if (legAngle > 145) s -= 0.8;
     } else {
-      // 각도 계산 못하면 짜게
       s -= 1.5;
     }
-  
-    // 4) 좌우 비대칭 (기준을 더 민감하게)
+
     if (legAngleL != null && legAngleR != null){
       const diff = Math.abs(legAngleL - legAngleR);
       if (diff > 12) s -= 1.2;
-      if (diff > 18) s -= 0.8; // 추가 감점
+      if (diff > 18) s -= 0.8;
     }
-  
-    // 5) 전체 스케일 다운을 "곡선"으로: 상위 점수 더 깎기 (체감 짜짐)
-    s = Math.pow(clamp(s, 0, 10) / 10, 1.25) * 10;  // 1.15~1.4로 조절
-  
-    // + 고정 감점은 유지하되 조금만
+
+    s = Math.pow(clamp(s, 0, 10) / 10, 1.25) * 10;
     s -= 0.4;
-  
+
     return clamp(s, 0, 10);
   }
-
 
   function computeFinalScore(){
     if (scoreSamples.length === 0) return 0;
@@ -1173,7 +1153,7 @@ $("rankSubmitTop").addEventListener("click", submitTopRank);
         const dy = wrist.y - lastWrist3d.y;
         const dz = wrist.z - lastWrist3d.z;
         const v_ms = Math.sqrt(dx*dx + dy*dy + dz*dz) / dt;
-        const v_kmh = v_ms * 3.6; // ✅ 소수 1자리로 유지
+        const v_kmh = v_ms * 3.6;
         maxSpeedKmh = Math.max(maxSpeedKmh, Math.min(300, v_kmh));
       }
     }
@@ -1181,12 +1161,11 @@ $("rankSubmitTop").addEventListener("click", submitTopRank);
     lastTimeSec = t;
   }
 
-  // ✅ 점수별 피드백 (너가 원한 느낌: 10점 근처에 “선수신가요?”)
   function getFeedback(score, speed){
     const s = Number(score) || 0;
 
     if (currentLang === "ko"){
-      if (s >= 9.5) return `혹시.. 선수신가요? 😳 (최고 ${i18n[currentLang].speed}: ${fixed1(speed)}km/h)`;
+      if (s >= 9.5) return `혹시.. 선수신가요? 😳 (최고 ${fixed1(speed)}km/h)`;
       if (s >= 8.8) return `상위권 폼이에요! 임팩트 타점만 조금 더 앞에서 잡아보세요. (최고 ${fixed1(speed)}km/h)`;
       if (s >= 8.0) return `좋아요! 팔꿈치를 조금 더 높게 유지하면 파워가 더 붙어요. (최고 ${fixed1(speed)}km/h)`;
       if (s >= 7.0) return `괜찮아요! 무릎을 살짝 더 써서 하체 힘을 연결해보세요. (최고 ${fixed1(speed)}km/h)`;
@@ -1196,17 +1175,16 @@ $("rankSubmitTop").addEventListener("click", submitTopRank);
     }
 
     if (currentLang === "zh"){
-      if (s >= 9.5) return `你是选手吗？😳（最高${i18n[currentLang].speed}：${fixed1(speed)} km/h）`;
-      if (s >= 8.8) return `很强！击球点再稍微靠前会更猛。（最高${fixed1(speed)} km/h）`;
-      if (s >= 8.0) return `不错！肘部再抬高一点，力量更集中。（最高${fixed1(speed)} km/h）`;
-      if (s >= 7.0) return `可以！膝盖微屈，用下肢带动发力。（最高${fixed1(speed)} km/h）`;
-      if (s >= 6.0) return `基础OK！重心更稳的话分数会涨很快。（最高${fixed1(speed)} km/h）`;
-      if (s >= 5.0) return `继续练！先把准备姿势做稳会更有效。（最高${fixed1(speed)} km/h）`;
-      return `没问题，从稳定开始最重要🙂（最高${fixed1(speed)} km/h）`;
+      if (s >= 9.5) return `你是选手吗？😳（最高 ${fixed1(speed)} km/h）`;
+      if (s >= 8.8) return `很强！击球点再稍微靠前会更猛。（最高 ${fixed1(speed)} km/h）`;
+      if (s >= 8.0) return `不错！肘部再抬高一点，力量更集中。（最高 ${fixed1(speed)} km/h）`;
+      if (s >= 7.0) return `可以！膝盖微屈，用下肢带动发力。（最高 ${fixed1(speed)} km/h）`;
+      if (s >= 6.0) return `基础OK！重心更稳的话分数会涨很快。（最高 ${fixed1(speed)} km/h）`;
+      if (s >= 5.0) return `继续练！先把准备姿势做稳会更有效。（最高 ${fixed1(speed)} km/h）`;
+      return `没问题，从稳定开始最重要🙂（最高 ${fixed1(speed)} km/h）`;
     }
 
-    // EN
-    if (s >= 9.5) return `Wait… are you a pro? 😳 (Peak ${i18n[currentLang].speed}: ${fixed1(speed)} km/h)`;
+    if (s >= 9.5) return `Wait… are you a pro? 😳 (Peak ${fixed1(speed)} km/h)`;
     if (s >= 8.8) return `Top-tier form! Try contacting slightly more in front. (Peak ${fixed1(speed)} km/h)`;
     if (s >= 8.0) return `Nice! Keep your elbow a bit higher for more power. (Peak ${fixed1(speed)} km/h)`;
     if (s >= 7.0) return `Good! Bend knees slightly to load power from legs. (Peak ${fixed1(speed)} km/h)`;
@@ -1215,7 +1193,6 @@ $("rankSubmitTop").addEventListener("click", submitTopRank);
     return `All good—start with stability 🙂 (Peak ${fixed1(speed)} km/h)`;
   }
 
-  // Prepare / Load video
   async function startAnalysis(){
     const t = i18n[currentLang];
     const file = $("videoUpload").files[0];
@@ -1264,7 +1241,6 @@ $("rankSubmitTop").addEventListener("click", submitTopRank);
     };
   }
 
-  // Play + analyze loop
   async function startPlayback(){
     const t = i18n[currentLang];
     if (!prepared) return;
@@ -1304,10 +1280,8 @@ $("rankSubmitTop").addEventListener("click", submitTopRank);
       const results = await poseLandmarker.detectForVideo(videoEl, nowInMs);
       if (results.landmarks && results.landmarks.length > 0){
         const lm = results.landmarks[0];
-
         drawingUtils.drawLandmarks(lm, { color:"#ff4d4d", radius:4 });
         drawingUtils.drawConnectors(lm, PoseLandmarker.POSE_CONNECTIONS, { color:"#22c55e", lineWidth:2 });
-
         scoreSamples.push(calculateScoreStrict(lm));
         sampleWristSpeedFromWorld(results);
       }
@@ -1325,9 +1299,9 @@ $("rankSubmitTop").addEventListener("click", submitTopRank);
     isAnalyzing = false;
     setLoading(false);
 
-    finalScore = computeFinalScore();      // ✅ 10점 만점, 소수 1자리
-    finalSpeed = round1(maxSpeedKmh || 0); // ✅ 소수 1자리
-    finalPoseFrameUrl = canvasEl.toDataURL("image/png");
+    const finalScore = computeFinalScore();
+    const finalSpeed = round1(maxSpeedKmh || 0);
+    const finalPoseFrameUrl = canvasEl.toDataURL("image/png");
 
     window.BADMI_RESULT = { score: finalScore, speed: finalSpeed };
 
@@ -1367,24 +1341,22 @@ $("rankSubmitTop").addEventListener("click", submitTopRank);
         <b>${t.feedback_label}:</b><br/>
         ${escapeHtml(feedback).replaceAll("\n","<br/>")}
       </div>
+
       <div style="margin-top:10px;">
         <button class="action btn-primary" id="rankSubmitBottom" style="width:100%;">🏆 ${t.rank_submit}</button>
       </div>
-
 
       <div style="margin-top:10px;">
         <button class="action btn-ghost" id="downloadStoryButton" style="width:100%;">${t.save_story}</button>
       </div>
     `;
 
+    $("rankSubmitBottom").addEventListener("click", submitTopRank);
     $("downloadStoryButton").addEventListener("click", async () => {
       await downloadStoryImage({ poseFrameUrl, score, speed, feedback });
     });
-    
-    $("rankSubmitBottom").addEventListener("click", submitTopRank);
+  }
 
-
-  // Story image generator (1080x1920)
   async function downloadStoryImage({ poseFrameUrl, score, speed, feedback }){
     const t = i18n[currentLang];
     const W = 1080, H = 1920;
@@ -1392,14 +1364,12 @@ $("rankSubmitTop").addEventListener("click", submitTopRank);
     out.width = W; out.height = H;
     const c = out.getContext("2d");
 
-    // bg
     const g = c.createLinearGradient(0,0,W,H);
     g.addColorStop(0, "#0b1020");
     g.addColorStop(1, "#1b1450");
     c.fillStyle = g;
     c.fillRect(0,0,W,H);
 
-    // title
     c.fillStyle = "rgba(255,255,255,0.92)";
     c.font = "900 54px system-ui, -apple-system, Segoe UI, Roboto";
     c.fillText(
@@ -1409,7 +1379,6 @@ $("rankSubmitTop").addEventListener("click", submitTopRank);
       70, 140
     );
 
-    // frame
     const img = await loadImage(poseFrameUrl);
     const cardX = 70, cardY = 210, cardW = 940, cardH = 1040;
 
@@ -1420,7 +1389,6 @@ $("rankSubmitTop").addEventListener("click", submitTopRank);
     c.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, cardX, cardY, cardW, cardH);
     c.restore();
 
-    // pills
     drawPill(c, 70, 1320, 450, 150,
       currentLang === "ko" ? `자세 점수  ${fixed1(score)}/10` :
       currentLang === "zh" ? `动作评分  ${fixed1(score)}/10` :
@@ -1432,12 +1400,10 @@ $("rankSubmitTop").addEventListener("click", submitTopRank);
       `Smash speed  ${fixed1(speed)} km/h`
     );
 
-    // feedback
     c.fillStyle = "rgba(255,255,255,0.86)";
     c.font = "700 34px system-ui, -apple-system, Segoe UI, Roboto";
     wrapText(c, feedback, 70, 1530, 940, 44, 6);
 
-    // footer
     c.fillStyle = "rgba(255,255,255,0.45)";
     c.font = "700 26px system-ui, -apple-system, Segoe UI, Roboto";
     c.fillText("Made with badmi", 70, 1860);
