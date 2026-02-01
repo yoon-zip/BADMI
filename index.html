@@ -600,125 +600,45 @@
     return await jsonp(url);
   }
 
-function renderRankTable(top20, me){
-  const list = Array.isArray(top20) ? top20 : [];
-  const shown = list.slice(0, 5);
-  const hidden = list.slice(5); // 6~20
+  function renderRankTable(top20, me){
+    const rows = (top20 || []).map(r => `
+      <tr class="${me && me.rank === r.rank ? "meRow" : ""}">
+        <td>#${r.rank}</td>
+        <td>${escapeHtml(r.nick)}</td>
+        <td>${escapeHtml(r.insta)}</td>
+        <td>${fixed1(r.score)}</td>
+        <td>${fixed1(r.speed)}</td>
+      </tr>
+    `).join("");
 
-  const rowHtml = (arr) => arr.map(r => `
-    <tr class="${me && me.rank === r.rank ? "meRow" : ""}">
-      <td>#${r.rank}</td>
-      <td>${escapeHtml(r.nick)} ${r.insta ? escapeHtml(r.insta) : ""}</td>
-      <td>${round1(r.score).toFixed(1)}</td>
-      <td>${Math.round(r.speed)}</td>
-    </tr>
-  `).join("");
+    const meRow = me && (me.nick || me.insta) ? `
+      <div class="rankHint" style="margin-top:10px;">
+        <b>내 기록</b> :
+        ${me.rank ? `#${me.rank}위` : "오늘 기록 없음"}
+        ${me.score != null ? ` · 점수 ${fixed1(me.score)}` : ""}
+        ${me.speed != null ? ` · 속도 ${fixed1(me.speed)} km/h` : ""}
+      </div>
+    ` : "";
 
-  return `
-    <div class="rankBox">
-      <div class="rankTitle">🏆 TOP 20</div>
-
-      <table class="rank">
-        <thead>
-          <tr>
-            <th>순위</th>
-            <th>이름 / 인스타</th>
-            <th>점수</th>
-            <th>속도</th>
-          </tr>
-        </thead>
-
-        <!-- 1~5위 -->
-        <tbody>
-          ${rowHtml(shown) || `<tr><td colspan="4">아직 기록이 없어요</td></tr>`}
-        </tbody>
-
-        <!-- 6~20위 -->
-        <tbody id="rankBodyMore" style="display:none">
-          ${rowHtml(hidden)}
-        </tbody>
-      </table>
-
-      ${
-        hidden.length > 0
-          ? `<button class="action btn-ghost"
-                    id="rankToggleBtn"
-                    style="width:100%; margin-top:8px;">
-              ▼ 더 보기 (TOP 20)
-            </button>`
-          : ""
-        }
-  
-        <div class="rankHint">
-          꼭 이름으로 안 해도 되어요!
-        </div>
+    return `
+      <div class="rankBox">
+        <div class="rankTitle">🏆 TOP 20</div>
+        <table class="rank">
+          <thead>
+            <tr>
+              <th>순위</th>
+              <th>이름</th>
+              <th>인스타</th>
+              <th>점수(10)</th>
+              <th>속도(km/h)</th>
+            </tr>
+          </thead>
+          <tbody>${rows || `<tr><td colspan="5">아직 등록된 기록이 없어요!</td></tr>`}</tbody>
+        </table>
+        ${meRow}
       </div>
     `;
   }
-
-    
-    // renderRankTable 함수 아래
-    function attachRankToggle(){
-      const btn = document.getElementById("rankToggleBtn");
-      if (!btn) return;
-    
-      btn.addEventListener("click", () => {
-        const more = document.getElementById("rankBodyMore");
-        if (!more) return;
-    
-        const opened = more.style.display !== "none";
-        more.style.display = opened ? "none" : "";
-        btn.textContent = opened ? "▼ 더 보기 (TOP 20)" : "▲ 접기";
-      });
-    }
-
-
-  const meRow = me && me.nick ? `
-    <div class="rankHint" style="margin-top:10px;">
-      <b>내 기록</b> :
-      ${me.rank ? `#${me.rank}위` : "오늘 기록 없음"}
-      ${me.score != null ? ` · 점수 ${round1(me.score).toFixed(1)}` : ""}
-      ${me.speed != null ? ` · 속도 ${Math.round(me.speed)} km/h` : ""}
-    </div>
-  ` : "";
-
-  const hasMore = hidden.length > 0;
-
-  return `
-    <div class="rankBox" id="rankBox">
-      <div class="rankTitle">🏆 TOP 20</div>
-
-      <table class="rank">
-        <thead>
-          <tr>
-            <th>순위</th>
-            <th>이름 / 인스타</th>
-            <th>점수</th>
-            <th>속도(km/h)</th>
-          </tr>
-        </thead>
-
-        <tbody id="rankBody">
-          ${shown.length ? rowHtml(shown) : `<tr><td colspan="4">아직 등록된 기록이 없어요!</td></tr>`}
-        </tbody>
-
-        <tbody id="rankBodyMore" style="display:none;">
-          ${hasMore ? rowHtml(hidden) : ""}
-        </tbody>
-      </table>
-
-      ${hasMore ? `
-        <button class="action btn-ghost" id="rankToggleBtn" style="width:100%; margin-top:10px;">
-          ▼ 더 보기 (TOP 20)
-        </button>
-      ` : ""}
-
-      ${meRow}
-      <div class="rankHint">꼭 이름으로 안 해도 되어요!</div>
-    </div>
-  `;
-}
-
 
   /************ ✅ i18n ************/
   const i18n = {
@@ -1002,7 +922,6 @@ function renderRankTable(top20, me){
       const data = await apiTop(date, nick, insta);
       if (!data || !data.ok) throw new Error(data?.error || "top failed");
       $("rankAreaTop").innerHTML = renderRankTable(data.top20, data.me);
-      attachRankToggle();
     }catch(e){
       console.error(e);
       $("rankAreaTop").innerHTML = `<div class="rankBox">${t.alerts.rank_fail}</div>`;
@@ -1038,7 +957,6 @@ function renderRankTable(top20, me){
       // submit 응답이 top20/me 포함이면 그대로 렌더
       if (data.top20) {
         $("rankAreaTop").innerHTML = renderRankTable(data.top20, data.me);
-        attachRankToggle();
       } else {
         await refreshTop20();
       }
@@ -1115,62 +1033,55 @@ function renderRankTable(top20, me){
   }
 
   // ✅ 10점 만점 (짜게)
-function calculateScoreStrict(landmarks){
-  let s = 10;
+  function calculateScoreStrict(landmarks){
+    let s = 10;
 
-  const shoulderR = landmarks[12] || {x:0,y:0};
-  const elbowR    = landmarks[14] || {x:0,y:0};
-  const wristR    = landmarks[16] || {x:0,y:0};
+    const shoulderR = landmarks[12] || {x:0,y:0};
+    const elbowR    = landmarks[14] || {x:0,y:0};
+    const wristR    = landmarks[16] || {x:0,y:0};
 
-  const hipL   = landmarks[23] || {x:0,y:0};
-  const kneeL  = landmarks[25] || {x:0,y:0};
-  const ankleL = landmarks[27] || {x:0,y:0};
+    const hipL   = landmarks[23] || {x:0,y:0};
+    const kneeL  = landmarks[25] || {x:0,y:0};
+    const ankleL = landmarks[27] || {x:0,y:0};
 
-  const hipR   = landmarks[24] || {x:0,y:0};
-  const kneeR  = landmarks[26] || {x:0,y:0};
-  const ankleR = landmarks[28] || {x:0,y:0};
+    const hipR   = landmarks[24] || {x:0,y:0};
+    const kneeR  = landmarks[26] || {x:0,y:0};
+    const ankleR = landmarks[28] || {x:0,y:0};
 
-  // 1) 팔꿈치가 어깨보다 낮으면 감점 (더 세게)
-  if (elbowR.y > shoulderR.y + 0.05) s -= 4.2;
-  if (elbowR.y > shoulderR.y + 0.10) s -= 1.4;
+    // 1) 팔꿈치 낮음
+    if (elbowR.y > shoulderR.y + 0.06) s -= 3.5;
+    if (elbowR.y > shoulderR.y + 0.12) s -= 1.0;
 
-  // 2) 손목이 팔꿈치보다 많이 아래면 감점 (힘 새는 폼)
-  const wristDrop = wristR.y - elbowR.y;
-  if (wristDrop > 0.10) s -= 1.2;
-  if (wristDrop > 0.16) s -= 0.8;
+    // 2) 손목 떨어짐(스윙 약함)
+    const wristDrop = wristR.y - elbowR.y;
+    if (wristDrop > 0.12) s -= 1.0;
 
-  // 3) 무릎 각도: 너무 펴져있으면 감점 (하체 미사용)
-  const legAngleL = calculateAngle(hipL, kneeL, ankleL);
-  const legAngleR = calculateAngle(hipR, kneeR, ankleR);
-  const legAngle = (legAngleL && legAngleR) ? (legAngleL+legAngleR)/2 : (legAngleL || legAngleR || 0);
+    // 3) 무릎 각도
+    const legAngleL = calculateAngle(hipL, kneeL, ankleL);
+    const legAngleR = calculateAngle(hipR, kneeR, ankleR);
+    const legAngle = (legAngleL && legAngleR) ? (legAngleL+legAngleR)/2 : (legAngleL || legAngleR || 0);
 
-  if (legAngle > 170) s -= 3.6;
-  else if (legAngle > 162) s -= 2.6;
-  else if (legAngle > 154) s -= 1.6;
+    if (legAngle > 168) s -= 3.0;
+    else if (legAngle > 160) s -= 2.0;
+    else if (legAngle > 150) s -= 1.0;
 
-  // 4) 좌우 무릎 비대칭(밸런스) 감점
-  if (legAngleL && legAngleR && Math.abs(legAngleL - legAngleR) > 16) s -= 1.3;
+    // 4) 좌우 비대칭
+    if (legAngleL && legAngleR && Math.abs(legAngleL - legAngleR) > 18) s -= 1.0;
 
-  // 5) 기본 페널티(전체적으로 후한 점수 방지)
-  s -= 1.0;
+    // 5) 전체 스케일 살짝 다운
+    s = s - 0.6;
 
-  return clamp(s, 0, 10);
-}
-
+    return clamp(s, 0, 10);
+  }
 
   function computeFinalScore(){
     if (scoreSamples.length === 0) return 0;
-  
     const sorted = [...scoreSamples].sort((a,b)=>b-a);
-  
-    // ✅ 상위 12%만 평균 (원래 25%였다면 훨씬 짜게 됨)
-    const topCount = Math.max(6, Math.floor(sorted.length * 0.12));
+    const topCount = Math.max(6, Math.floor(sorted.length * 0.25));
     const top = sorted.slice(0, topCount);
-  
     const avgTop = top.reduce((sum,v)=>sum+v,0) / top.length;
-    return round1(avgTop); // 소수점 1자리 유지
+    return round1(avgTop);
   }
-
 
   function sampleWristSpeedFromWorld(results){
     const wl = results.worldLandmarks?.[0];
