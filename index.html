@@ -333,6 +333,11 @@
       font-size: 12px;
       line-height: 1.4;
     }
+    .rankTopActions{
+      display:flex;
+      gap:10px;
+      margin-top:10px;
+    }
 
     /* Sticky action bar */
     .actionBar{
@@ -402,16 +407,25 @@
       </div>
     </div>
 
-    <!-- ✅ RANKING (TOP of page) -->
-    <div class="card" id="rankTopCard">
+    <!-- ✅ TOP20 (맨 위) -->
+    <div class="card" id="rankCardTop">
       <div class="inner">
-        <div class="sectionTitle">🏆 TOP 20</div>
-        <div class="hint" style="margin-top:6px;">
-          오늘 기록 기준 랭킹이에요. (5개만 먼저 보여요)
+        <div class="sectionTitle" id="t_rank_title">🏆 TOP 20</div>
+
+        <div class="row" style="flex-direction:column; align-items:stretch;">
+          <input class="nick" id="rankNickTop" maxlength="20" placeholder="이름 (예: 윤서)" />
+          <input class="nick" id="rankInstaTop" maxlength="30" placeholder="인스타 아이디 (예: @yoondminton)" />
+          <div class="rankTopActions">
+            <button class="action btn-ghost" id="rankRefreshTop" style="width:100%;">🔄 새로고침</button>
+            <button class="action btn-primary" id="rankSubmitTop" style="width:100%;">🏆 랭킹 등록</button>
+          </div>
         </div>
-        <div id="rankTopArea" style="margin-top:10px;">
-          <div class="rankBox">랭킹 불러오는 중…</div>
+
+        <div id="rankAreaTop" style="margin-top:10px;">
+          <div class="rankBox" id="t_rank_loading">랭킹 불러오는 중…</div>
         </div>
+
+        <div class="rankHint" id="t_rank_hint">꼭 이름으로 안 해도 되어요!</div>
       </div>
     </div>
 
@@ -471,7 +485,7 @@
       </div>
     </div>
 
-    <!-- Results (includes Ranking submit at bottom) -->
+    <!-- Results -->
     <div class="card" id="results">
       <div class="inner" id="resultsInner"></div>
     </div>
@@ -488,7 +502,7 @@
 <script type="module">
   import { PoseLandmarker, FilesetResolver, DrawingUtils } from "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.0";
 
-  /************ ✅ 랭킹 서버 URL(여기만 교체!) ************/
+  /************ ✅ 랭킹 서버 URL (여기만 바꾸면 됨) ************/
   const RANK_API = "https://script.google.com/macros/s/AKfycbx5sF3-tuPcMAOABoKXbB9lKZdt1ix8JyK7wkdkGtpQEpspcu_VhRBDyjeF2o9KwCR0vQ/exec";
 
   // Helpers
@@ -497,7 +511,17 @@
     try{ if (typeof gtag === "function") gtag(...args); }catch(e){}
   }
   function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
-  function round1(n){ return Math.round(n * 10) / 10; }
+  function round1(n){ return Math.round(Number(n) * 10) / 10; }
+  function fixed1(n){ return round1(n).toFixed(1); }
+
+  function escapeHtml(s){
+    return String(s||"")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
 
   function todayStr(){
     const d = new Date();
@@ -507,7 +531,7 @@
     return `${y}-${m}-${dd}`;
   }
 
-  // JSONP request (Apps Script)
+  /************ ✅ JSONP (Apps Script CORS 회피) ************/
   function jsonp(url, timeoutMs = 9000){
     return new Promise((resolve, reject) => {
       const cbName = "__cb_" + Math.random().toString(36).slice(2);
@@ -549,106 +573,74 @@
     });
   }
 
-  function escapeHtml(s){
-    return String(s||"")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
+  function normalizeInsta(insta){
+    let s = String(insta || "").trim();
+    if (!s) return "";
+    if (!s.startsWith("@")) s = "@" + s;
+    return s;
   }
 
-  async function fetchTop(nick, insta){
-    const date = todayStr();
+  async function apiTop(date, nick, insta){
     const url =
-      `${RANK_API}?action=top&date=${encodeURIComponent(date)}`
-      + `&nick=${encodeURIComponent(nick||"")}`
-      + `&insta=${encodeURIComponent(insta||"")}`;
+      `${RANK_API}?action=top`
+      + `&date=${encodeURIComponent(date)}`
+      + `&nick=${encodeURIComponent(nick || "")}`
+      + `&insta=${encodeURIComponent(insta || "")}`;
     return await jsonp(url);
   }
 
-  async function submitRanking(nick, insta, score, speed){
-    const date = todayStr();
+  async function apiSubmit(date, nick, insta, score, speed){
     const url =
-      `${RANK_API}?action=submit&date=${encodeURIComponent(date)}`
+      `${RANK_API}?action=submit`
+      + `&date=${encodeURIComponent(date)}`
       + `&nick=${encodeURIComponent(nick)}`
       + `&insta=${encodeURIComponent(insta)}`
-      + `&score=${encodeURIComponent(score)}`
-      + `&speed=${encodeURIComponent(speed)}`;
+      + `&score=${encodeURIComponent(round1(score))}`
+      + `&speed=${encodeURIComponent(round1(speed))}`;
     return await jsonp(url);
   }
 
-  function attachRankToggle(prefix){
-    const btn = document.getElementById(prefix + "rankToggleBtn");
-    if (!btn) return;
-    btn.addEventListener("click", () => {
-      const more = document.getElementById(prefix + "rankBodyMore");
-      if (!more) return;
-      const opened = more.style.display !== "none";
-      more.style.display = opened ? "none" : "";
-      btn.textContent = opened ? "▼ 더 보기 (TOP 20)" : "▲ 접기";
-    });
-  }
-
-  function renderRankTable(top20, me, prefix=""){
-    const list = Array.isArray(top20) ? top20 : [];
-    const shown = list.slice(0, 5);
-    const hidden = list.slice(5);
-
-    const rowHtml = (arr) => arr.map(r => `
+  function renderRankTable(top20, me){
+    const rows = (top20 || []).map(r => `
       <tr class="${me && me.rank === r.rank ? "meRow" : ""}">
         <td>#${r.rank}</td>
-        <td>${escapeHtml(r.nick)} ${r.insta ? escapeHtml(r.insta) : ""}</td>
-        <td>${round1(r.score).toFixed(1)}</td>
-        <td>${round1(r.speed).toFixed(1)}</td>
+        <td>${escapeHtml(r.nick)}</td>
+        <td>${escapeHtml(r.insta)}</td>
+        <td>${fixed1(r.score)}</td>
+        <td>${fixed1(r.speed)}</td>
       </tr>
     `).join("");
 
-    const meRow = me && me.nick ? `
+    const meRow = me && (me.nick || me.insta) ? `
       <div class="rankHint" style="margin-top:10px;">
         <b>내 기록</b> :
         ${me.rank ? `#${me.rank}위` : "오늘 기록 없음"}
-        ${me.score != null ? ` · 점수 ${round1(me.score).toFixed(1)}` : ""}
-        ${me.speed != null ? ` · 속도 ${round1(me.speed).toFixed(1)} km/h` : ""}
+        ${me.score != null ? ` · 점수 ${fixed1(me.score)}` : ""}
+        ${me.speed != null ? ` · 속도 ${fixed1(me.speed)} km/h` : ""}
       </div>
     ` : "";
 
     return `
       <div class="rankBox">
+        <div class="rankTitle">🏆 TOP 20</div>
         <table class="rank">
           <thead>
             <tr>
               <th>순위</th>
-              <th>이름 / 인스타</th>
-              <th>점수</th>
+              <th>이름</th>
+              <th>인스타</th>
+              <th>점수(10)</th>
               <th>속도(km/h)</th>
             </tr>
           </thead>
-
-          <tbody>
-            ${rowHtml(shown) || `<tr><td colspan="4">아직 등록된 기록이 없어요!</td></tr>`}
-          </tbody>
-
-          <tbody id="${prefix}rankBodyMore" style="display:none">
-            ${rowHtml(hidden)}
-          </tbody>
+          <tbody>${rows || `<tr><td colspan="5">아직 등록된 기록이 없어요!</td></tr>`}</tbody>
         </table>
-
-        ${
-          hidden.length > 0
-          ? `<button class="action btn-ghost" id="${prefix}rankToggleBtn" style="width:100%; margin-top:8px;">
-              ▼ 더 보기 (TOP 20)
-            </button>`
-          : ""
-        }
-
         ${meRow}
-        <div class="rankHint">꼭 이름으로 안 해도 되어요!</div>
       </div>
     `;
   }
 
-  // i18n (minimal: keep your existing labels)
+  /************ ✅ i18n ************/
   const i18n = {
     ko: {
       title: "🏸 배드민턴 스매싱 분석기",
@@ -676,12 +668,14 @@
       status_initfail: "초기화 실패",
       status_nofile: "영상이 없어요",
       result_title: "✅ 분석 결과",
-      score: "스매싱 점수",
+      score: "자세 점수",
       speed: "추정 스매싱 속도",
       save_story: "📱 스토리 이미지 저장 (1080×1920)",
       feedback_label: "피드백",
-      submit_rank: "랭킹 등록",
-      rank_fail: "랭킹 서버 연결이 잠깐 불안정해요. 조금 뒤 다시 시도해줘!",
+      rank_loading: "랭킹 불러오는 중…",
+      rank_submit: "랭킹 등록",
+      rank_refresh: "새로고침",
+      rank_hint: "꼭 이름으로 안 해도 되어요!",
       tips_list: [
         "세로 촬영 권장",
         "전신(발~라켓 팔 손목)이 프레임 안에 들어오게",
@@ -693,7 +687,11 @@
         upload: "영상을 업로드하세요.",
         max: "파일 크기는 100MB 이하여야 합니다.",
         initfail: "초기화 실패. 브라우저 콘솔(F12) 확인 또는 Chrome 최신 버전 사용을 권장합니다.",
-        playfail: "재생에 실패했어요. 모바일은 사용자 제스처가 필요할 수 있어요."
+        playfail: "재생에 실패했어요. 모바일은 사용자 제스처가 필요할 수 있어요.",
+        rank_fail: "랭킹 서버 연결이 잠깐 불안정해요. 조금 뒤 다시 시도해줘!",
+        need_name: "이름을 입력해줘!",
+        need_insta: "인스타 아이디를 입력해줘!",
+        need_result: "분석을 먼저 완료해줘!"
       },
       save_done_title: "✅ 저장 완료!",
       save_done_body:
@@ -701,23 +699,25 @@
         "iPhone: 파일 앱 > 다운로드에서 확인 → 공유 버튼 → 사진에 저장(또는 인스타로 공유)\n" +
         "Android: 다운로드(Downloads) 폴더에서 확인 → 갤러리에 표시됨(기기별 상이)"
     },
+
     en: {
       title: "🏸 Badminton Smash Analyzer",
       sub: "Vertical filming recommended (tap Filming Tips below)",
       step1: "1) Upload Video",
       step1_hint_html:
         "After uploading, tap <b>Start Analysis</b> at the bottom. " +
-        "To check tracking, press <b>Play</b>. Results appear quickly.",
+        "If you want to check whether body tracking works well, press <b>Play</b>. " +
+        "Results appear quickly.",
       tips_title: "Filming Tips",
       step2: "2) Tap ‘Start Analysis’ at the bottom",
-      step2_hint: "Follow the filming guide for stable tracking.",
+      step2_hint: "Please follow the filming guide for stable tracking.",
       play: "Play",
       start: "Start Analysis",
       reset: "Reset",
       privacy: "※ Your video is processed locally in your browser.",
       hud_wait: "⏳ Getting ready to analyze…",
       hud_ready: "✅ Ready! Press Play on the video",
-      hud_analyzing: "🔎 Analyzing…",
+      hud_analyzing: "🔎 Analyzing… (results after it ends)",
       hud_done: "✅ Done! Check results below",
       status_idle: "Idle",
       status_ready: "Ready",
@@ -726,15 +726,17 @@
       status_initfail: "Init failed",
       status_nofile: "No video",
       result_title: "✅ Result",
-      score: "Smash Score",
-      speed: "Estimated Smash Speed",
+      score: "Form Score",
+      speed: "Estimated smash speed",
       save_story: "📱 Save Story Image (1080×1920)",
       feedback_label: "Feedback",
-      submit_rank: "Submit to Ranking",
-      rank_fail: "Ranking server seems unstable. Please try again shortly!",
+      rank_loading: "Loading ranking…",
+      rank_submit: "Submit",
+      rank_refresh: "Refresh",
+      rank_hint: "You don’t have to use your real name!",
       tips_list: [
         "Vertical (9:16) recommended",
-        "Keep full body in frame",
+        "Keep full body in frame (feet → hitting wrist)",
         "Bright lighting + dark background helps tracking",
         "Side view is better than front view",
         "5–10 seconds, under 100MB"
@@ -743,32 +745,38 @@
         upload: "Please upload a video.",
         max: "File must be under 100MB.",
         initfail: "Initialization failed. Check console or use the latest Chrome.",
-        playfail: "Playback failed. Mobile may require a user gesture."
+        playfail: "Playback failed. Mobile may require a user gesture.",
+        rank_fail: "Ranking server seems unstable. Please try again shortly!",
+        need_name: "Please enter your name!",
+        need_insta: "Please enter your Instagram!",
+        need_result: "Please finish analysis first!"
       },
       save_done_title: "✅ Saved!",
       save_done_body:
         "Your story image has been saved.\n\n" +
-        "iPhone: Files > Downloads → Share → Save Image\n" +
-        "Android: Downloads folder (may appear in Gallery)"
+        "iPhone: Files app > Downloads → Share → Save Image (or share to Instagram)\n" +
+        "Android: Check Downloads folder → it may appear in Gallery (varies by device)"
     },
+
     zh: {
       title: "🏸 羽毛球扣杀分析器",
       sub: "建议竖屏拍摄（点击下方拍摄提示）",
       step1: "1) 上传视频",
       step1_hint_html:
         "上传后点击底部的 <b>开始分析</b>。 " +
-        "想确认追踪效果请点击 <b>播放</b>。",
+        "如果想确认身体追踪是否正常，请点击 <b>播放</b>。 " +
+        "结果会很快出现。",
       tips_title: "拍摄提示",
       step2: "2) 点击底部“开始分析”按钮",
-      step2_hint: "请按拍摄指南录制，识别更稳定。",
+      step2_hint: "请按拍摄指南录制，识别会更稳定。",
       play: "播放",
       start: "开始分析",
       reset: "重置",
       privacy: "※ 视频仅在浏览器本地处理。",
       hud_wait: "⏳ 正在准备分析…",
-      hud_ready: "✅ 已就绪！点击播放",
-      hud_analyzing: "🔎 分析中…",
-      hud_done: "✅ 完成！查看结果",
+      hud_ready: "✅ 已就绪！点击视频播放",
+      hud_analyzing: "🔎 分析中…（结束后出结果）",
+      hud_done: "✅ 完成！查看下方结果",
       status_idle: "待机",
       status_ready: "已就绪",
       status_analyzing: "分析中",
@@ -776,12 +784,14 @@
       status_initfail: "初始化失败",
       status_nofile: "未选择视频",
       result_title: "✅ 分析结果",
-      score: "扣杀评分",
+      score: "动作评分",
       speed: "预计扣杀速度",
       save_story: "📱 保存Story图片 (1080×1920)",
       feedback_label: "反馈",
-      submit_rank: "提交排行",
-      rank_fail: "排行榜服务暂时不稳定，请稍后再试！",
+      rank_loading: "正在加载排行…",
+      rank_submit: "提交",
+      rank_refresh: "刷新",
+      rank_hint: "不一定要用真实姓名！",
       tips_list: [
         "建议竖屏拍摄",
         "全身入镜（脚 → 挥拍手腕）",
@@ -793,13 +803,17 @@
         upload: "请先上传视频。",
         max: "文件需小于100MB。",
         initfail: "初始化失败。请查看控制台或使用最新版Chrome。",
-        playfail: "播放失败。手机端可能需要点击触发播放。"
+        playfail: "播放失败。手机端可能需要用户点击触发播放。",
+        rank_fail: "排行榜服务暂时不稳定，请稍后再试！",
+        need_name: "请输入姓名！",
+        need_insta: "请输入 Instagram！",
+        need_result: "请先完成分析！"
       },
       save_done_title: "✅ 已保存！",
       save_done_body:
         "Story 图片已保存。\n\n" +
-        "iPhone：文件App > 下载 → 分享 → 存储到照片\n" +
-        "Android：Downloads 文件夹（可能显示到相册）"
+        "iPhone：文件App > 下载 → 分享 → 存储到照片（或分享到 Instagram）\n" +
+        "Android：查看 Downloads 文件夹 → 可能会显示在相册（因机型而异）"
     }
   };
 
@@ -843,6 +857,18 @@
     $("t_reset").textContent = t.reset;
     $("t_privacy").textContent = t.privacy;
 
+    $("t_rank_title").textContent = "🏆 TOP 20";
+    $("t_rank_loading").textContent = t.rank_loading;
+    $("t_rank_hint").textContent = t.rank_hint;
+    $("rankRefreshTop").textContent = "🔄 " + t.rank_refresh;
+    $("rankSubmitTop").textContent = "🏆 " + t.rank_submit;
+
+    // placeholders
+    $("rankNickTop").placeholder =
+      (lang==="ko") ? "이름 (예: 윤서)" : (lang==="zh") ? "姓名（例：Yoon）" : "Name (e.g., Yoon)";
+    $("rankInstaTop").placeholder =
+      (lang==="ko") ? "인스타 아이디 (예: @yoondminton)" : (lang==="zh") ? "Instagram（例：@yoondminton）" : "Instagram (e.g., @yoondminton)";
+
     const tipsUl = $("t_tips_list");
     tipsUl.innerHTML = "";
     t.tips_list.forEach(x=>{
@@ -855,13 +881,100 @@
       b.classList.toggle("active", b.dataset.lang === lang);
     });
 
+    // HUD/Status text도 언어에 맞춰 자연스럽게 업데이트
+    if (!prepared) {
+      setHUD(t.hud_wait);
+      setStatus("", t.status_idle);
+    }
+
+    // 랭킹 UI도 언어 바뀌면 즉시 재조회(표 헤더는 KO 고정이지만 내용/메시지 갱신)
+    refreshTop20();
+
     safeGtag("event","change_language",{ lang });
   }
   document.querySelectorAll(".lang-switch button").forEach(btn=>{
     btn.addEventListener("click", ()=> setLang(btn.dataset.lang));
   });
 
-  // Pose
+  /************ ✅ 랭킹 (상단) ************/
+  function loadRankInputs(){
+    const savedNick = localStorage.getItem("badmi_rank_nick") || "";
+    const savedInsta = localStorage.getItem("badmi_rank_insta") || "";
+    $("rankNickTop").value = savedNick;
+    $("rankInstaTop").value = savedInsta;
+  }
+
+  function saveRankInputs(nick, insta){
+    localStorage.setItem("badmi_rank_nick", nick || "");
+    localStorage.setItem("badmi_rank_insta", insta || "");
+  }
+
+  async function refreshTop20(){
+    const t = i18n[currentLang];
+    const date = todayStr();
+
+    const nick = $("rankNickTop").value.trim();
+    const insta = normalizeInsta($("rankInstaTop").value.trim());
+
+    $("rankAreaTop").innerHTML = `<div class="rankBox">${t.rank_loading}</div>`;
+
+    try{
+      const data = await apiTop(date, nick, insta);
+      if (!data || !data.ok) throw new Error(data?.error || "top failed");
+      $("rankAreaTop").innerHTML = renderRankTable(data.top20, data.me);
+    }catch(e){
+      console.error(e);
+      $("rankAreaTop").innerHTML = `<div class="rankBox">${t.alerts.rank_fail}</div>`;
+    }
+  }
+
+  async function submitTopRank(){
+    const t = i18n[currentLang];
+    const nick = $("rankNickTop").value.trim();
+    const insta = normalizeInsta($("rankInstaTop").value.trim());
+
+    if (!nick) return alert(t.alerts.need_name);
+    if (!insta) return alert(t.alerts.need_insta);
+
+    // ✅ 분석 결과가 있어야 제출 가능
+    if (!window.BADMI_RESULT || !isFinite(window.BADMI_RESULT.score) || !isFinite(window.BADMI_RESULT.speed)){
+      return alert(t.alerts.need_result);
+    }
+
+    const score = round1(window.BADMI_RESULT.score);
+    const speed = round1(window.BADMI_RESULT.speed);
+
+    saveRankInputs(nick, insta);
+
+    try{
+      $("rankSubmitTop").disabled = true;
+      $("rankSubmitTop").textContent = "⏳ ...";
+
+      const date = todayStr();
+      const data = await apiSubmit(date, nick, insta, score, speed);
+      if (!data || !data.ok) throw new Error(data?.error || "submit failed");
+
+      // submit 응답이 top20/me 포함이면 그대로 렌더
+      if (data.top20) {
+        $("rankAreaTop").innerHTML = renderRankTable(data.top20, data.me);
+      } else {
+        await refreshTop20();
+      }
+
+      safeGtag("event","rank_submit",{ lang: currentLang, score, speed });
+    }catch(e){
+      console.error(e);
+      alert(t.alerts.rank_fail);
+    }finally{
+      $("rankSubmitTop").disabled = false;
+      $("rankSubmitTop").textContent = "🏆 " + t.rank_submit;
+    }
+  }
+
+  $("rankRefreshTop").addEventListener("click", refreshTop20);
+  $("rankSubmitTop").addEventListener("click", submitTopRank);
+
+  /************ ✅ Pose / Analysis ************/
   let poseLandmarker = null;
   let drawingUtils = null;
   let prepared = false;
@@ -919,10 +1032,7 @@
     return Math.acos(cos) * 180 / Math.PI;
   }
 
-  /**
-   * ✅ 점수 로직(10점 만점, "좀 짜게")
-   * - 팔꿈치 높이, 하체(무릎), 좌우 밸런스 + 소폭 보정
-   */
+  // ✅ 10점 만점 (짜게)
   function calculateScoreStrict(landmarks){
     let s = 10;
 
@@ -938,35 +1048,34 @@
     const kneeR  = landmarks[26] || {x:0,y:0};
     const ankleR = landmarks[28] || {x:0,y:0};
 
-    // 팔꿈치가 어깨보다 낮으면 감점
-    if (elbowR.y > shoulderR.y + 0.06) s -= 2.6;
-    if (elbowR.y > shoulderR.y + 0.12) s -= 1.2;
+    // 1) 팔꿈치 낮음
+    if (elbowR.y > shoulderR.y + 0.06) s -= 3.5;
+    if (elbowR.y > shoulderR.y + 0.12) s -= 1.0;
 
-    // 손목이 팔꿈치보다 많이 떨어지면 감점(임팩트 약함)
+    // 2) 손목 떨어짐(스윙 약함)
     const wristDrop = wristR.y - elbowR.y;
-    if (wristDrop > 0.12) s -= 0.9;
+    if (wristDrop > 0.12) s -= 1.0;
 
-    // 무릎 각도 (너무 펴져 있으면 감점)
+    // 3) 무릎 각도
     const legAngleL = calculateAngle(hipL, kneeL, ankleL);
     const legAngleR = calculateAngle(hipR, kneeR, ankleR);
     const legAngle = (legAngleL && legAngleR) ? (legAngleL+legAngleR)/2 : (legAngleL || legAngleR || 0);
 
-    if (legAngle > 170) s -= 2.6;
-    else if (legAngle > 162) s -= 1.8;
-    else if (legAngle > 152) s -= 1.0;
+    if (legAngle > 168) s -= 3.0;
+    else if (legAngle > 160) s -= 2.0;
+    else if (legAngle > 150) s -= 1.0;
 
-    // 좌우 무릎 비대칭(밸런스)
-    if (legAngleL && legAngleR && Math.abs(legAngleL - legAngleR) > 18) s -= 0.8;
+    // 4) 좌우 비대칭
+    if (legAngleL && legAngleR && Math.abs(legAngleL - legAngleR) > 18) s -= 1.0;
 
-    // 전체를 살짝 짜게 만드는 보정
-    s -= 0.7;
+    // 5) 전체 스케일 살짝 다운
+    s = s - 0.6;
 
     return clamp(s, 0, 10);
   }
 
   function computeFinalScore(){
     if (scoreSamples.length === 0) return 0;
-    // 상위 25% 평균 (좋은 순간 위주)
     const sorted = [...scoreSamples].sort((a,b)=>b-a);
     const topCount = Math.max(6, Math.floor(sorted.length * 0.25));
     const top = sorted.slice(0, topCount);
@@ -987,8 +1096,7 @@
         const dy = wrist.y - lastWrist3d.y;
         const dz = wrist.z - lastWrist3d.z;
         const v_ms = Math.sqrt(dx*dx + dy*dy + dz*dz) / dt;
-        const v_kmh = v_ms * 3.6;
-        // 상한만 걸고(이상치 방지) 소수 1자리
+        const v_kmh = v_ms * 3.6; // ✅ 소수 1자리로 유지
         maxSpeedKmh = Math.max(maxSpeedKmh, Math.min(300, v_kmh));
       }
     }
@@ -996,104 +1104,38 @@
     lastTimeSec = t;
   }
 
-  // 점수별 피드백(기존 방식: score 구간으로)
-  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-
+  // ✅ 점수별 피드백 (너가 원한 느낌: 10점 근처에 “선수신가요?”)
   function getFeedback(score, speed){
-    const s = score;
+    const s = Number(score) || 0;
 
-    const tips = {
-      elbow: [
-        "팁: 임팩트 순간 팔꿈치를 한 뼘만 더 높여보세요.",
-        "팁: 팔꿈치를 ‘귀 옆’ 느낌으로 올리면 파워가 확 좋아져요.",
-        "팁: 팔꿈치가 내려가면 힘이 새요. 준비 자세에서 먼저 올려두기!"
-      ],
-      knee: [
-        "팁: 무릎을 살짝 굽히고 점프/스텝으로 힘을 모아보세요.",
-        "팁: 무릎이 너무 펴지면 상체만으로 치게 돼요. ‘살짝 앉기’!",
-        "팁: 하체가 들어가면 스매시가 가벼워지지 않아요."
-      ],
-      balance: [
-        "팁: 중심이 흔들리면 임팩트가 약해져요. 중심을 먼저 고정!",
-        "팁: 디딤발-힙-어깨 라인을 한 번에 세워보세요.",
-        "팁: 스윙보다 먼저 ‘밸런스’가 1순위!"
-      ],
-      contact: [
-        "팁: 타점을 ‘앞·위’로 잡으면 각도와 속도가 같이 올라요.",
-        "팁: 임팩트 직전에 손목이 꺾이지 않게 ‘단단하게’!",
-        "팁: 라켓이 너무 뒤로 빠지면 타점이 늦어요. 조금만 앞에서!"
-      ]
-    };
-
-    if (currentLang !== "ko"){
-      // EN/ZH는 간단 버전 유지
-      const en = `Score ${round1(score).toFixed(1)}/10, peak speed ${round1(speed).toFixed(1)} km/h.`;
-      const zh = `评分 ${round1(score).toFixed(1)}/10，最高速度 ${round1(speed).toFixed(1)} km/h。`;
-      return currentLang === "zh" ? zh : en;
+    if (currentLang === "ko"){
+      if (s >= 9.5) return `혹시.. 선수신가요? 😳 (최고 ${i18n[currentLang].speed}: ${fixed1(speed)}km/h)`;
+      if (s >= 8.8) return `상위권 폼이에요! 임팩트 타점만 조금 더 앞에서 잡아보세요. (최고 ${fixed1(speed)}km/h)`;
+      if (s >= 8.0) return `좋아요! 팔꿈치를 조금 더 높게 유지하면 파워가 더 붙어요. (최고 ${fixed1(speed)}km/h)`;
+      if (s >= 7.0) return `괜찮아요! 무릎을 살짝 더 써서 하체 힘을 연결해보세요. (최고 ${fixed1(speed)}km/h)`;
+      if (s >= 6.0) return `기본은 OK! 밸런스(중심)만 더 잡으면 점수 빨리 올라요. (최고 ${fixed1(speed)}km/h)`;
+      if (s >= 5.0) return `연습 각! 준비 자세에서 팔꿈치를 먼저 올려두는 습관이 도움돼요. (최고 ${fixed1(speed)}km/h)`;
+      return `처음치곤 충분해요 🙂 조명/측면 각도로 찍으면 분석도 더 정확해져요. (최고 ${fixed1(speed)}km/h)`;
     }
 
-    let opener = "", body = "", tip = "";
-
-    if (s >= 9.5){
-      opener = "혹시… 선수신가요? 😳";
-      body = pick([
-        "폼이 거의 완성형이에요. 임팩트가 깔끔하고 흔들림이 적어요.",
-        "동작이 너무 안정적이에요. 타점이 좋아서 공이 ‘쭉’ 나갈 타입!",
-        "이 정도면 랭킹 상위권 각입니다. 이 리듬 유지하세요."
-      ]);
-      tip = pick([tips.contact[0], tips.balance[2], tips.elbow[1]]);
-    } else if (s >= 8.0){
-      opener = pick(["오… 꽤 고수 느낌!", "좋다! 거의 다 왔어요.", "폼 괜찮은데요?"]);
-      body = pick([
-        "전체적으로 안정적이에요. 몇 가지만 다듬으면 확 올라요.",
-        "임팩트 순간이 좋아요. 자세만 한 단계 더 정리해봅시다.",
-        "상체-하체 연결이 좋아요. 작은 습관 하나만 고치면 끝!"
-      ]);
-      tip = pick([tips.elbow[0], tips.knee[0], tips.balance[0], tips.contact[2]]);
-    } else if (s >= 6.5){
-      opener = pick(["괜찮아요! 성장 구간이에요.", "지금도 충분히 좋아요.", "오케이, 방향은 맞아요!"]);
-      body = pick([
-        "기본이 있어서 조금만 바꾸면 바로 좋아져요.",
-        "스윙은 있는데 힘 전달이 조금 새는 느낌이에요.",
-        "지금은 ‘안정성’을 올리면 점수 금방 올라요."
-      ]);
-      tip = pick([tips.knee[1], tips.elbow[2], tips.balance[1], tips.contact[1]]);
-    } else if (s >= 4.5){
-      opener = pick(["아깝다! 조금만 손보자.", "괜찮아, 지금부터가 진짜.", "고칠 포인트가 명확해요."]);
-      body = pick([
-        "팔꿈치/하체 중 한 쪽만 잡아도 확 좋아질 거예요.",
-        "지금은 힘이 분산돼요. ‘한 포인트’에 집중해봅시다.",
-        "급하게 치는 느낌이 있어요. 준비 자세를 먼저 만들기!"
-      ]);
-      tip = pick([tips.elbow[0], tips.knee[0], tips.balance[0]]);
-    } else {
-      opener = pick(["오늘은 몸이 안 풀렸나봐요 🥹", "오케이, 여기서부터 만들면 돼요!", "괜찮아! 금방 좋아져요."]);
-      body = pick([
-        "지금은 자세가 먼저예요. 속도보다 ‘타점+밸런스’부터!",
-        "스윙을 크게 하기보다 준비 자세를 안정적으로 잡아보세요.",
-        "몸이 무너지면 파워가 안 나와요. 중심부터 세우기!"
-      ]);
-      tip = pick([tips.balance[0], tips.knee[1], tips.elbow[2]]);
+    if (currentLang === "zh"){
+      if (s >= 9.5) return `你是选手吗？😳（最高${i18n[currentLang].speed}：${fixed1(speed)} km/h）`;
+      if (s >= 8.8) return `很强！击球点再稍微靠前会更猛。（最高${fixed1(speed)} km/h）`;
+      if (s >= 8.0) return `不错！肘部再抬高一点，力量更集中。（最高${fixed1(speed)} km/h）`;
+      if (s >= 7.0) return `可以！膝盖微屈，用下肢带动发力。（最高${fixed1(speed)} km/h）`;
+      if (s >= 6.0) return `基础OK！重心更稳的话分数会涨很快。（最高${fixed1(speed)} km/h）`;
+      if (s >= 5.0) return `继续练！先把准备姿势做稳会更有效。（最高${fixed1(speed)} km/h）`;
+      return `没问题，从稳定开始最重要🙂（最高${fixed1(speed)} km/h）`;
     }
 
-    return `${opener} ${body}\n최고 속도: ${round1(speed).toFixed(1)} km/h\n${tip}`;
-  }
-
-  // ---- Ranking: top card load (always on top) ----
-  async function refreshTopCard(){
-    const savedName = localStorage.getItem("badmi_name") || "";
-    const savedInsta = localStorage.getItem("badmi_insta") || "";
-    const nick = savedName.trim();
-    const insta = (savedInsta || "").trim();
-
-    try{
-      const data = await fetchTop(nick, insta);
-      $("rankTopArea").innerHTML = renderRankTable(data.top20, data.me, "top_");
-      attachRankToggle("top_");
-    }catch(e){
-      console.error(e);
-      $("rankTopArea").innerHTML = `<div class="rankBox">${i18n[currentLang].rank_fail}</div>`;
-    }
+    // EN
+    if (s >= 9.5) return `Wait… are you a pro? 😳 (Peak ${i18n[currentLang].speed}: ${fixed1(speed)} km/h)`;
+    if (s >= 8.8) return `Top-tier form! Try contacting slightly more in front. (Peak ${fixed1(speed)} km/h)`;
+    if (s >= 8.0) return `Nice! Keep your elbow a bit higher for more power. (Peak ${fixed1(speed)} km/h)`;
+    if (s >= 7.0) return `Good! Bend knees slightly to load power from legs. (Peak ${fixed1(speed)} km/h)`;
+    if (s >= 6.0) return `Solid base! Improve balance to boost score fast. (Peak ${fixed1(speed)} km/h)`;
+    if (s >= 5.0) return `Keep going—set your elbow early in preparation. (Peak ${fixed1(speed)} km/h)`;
+    return `All good—start with stability 🙂 (Peak ${fixed1(speed)} km/h)`;
   }
 
   // Prepare / Load video
@@ -1103,7 +1145,6 @@
     if (!file){ alert(t.alerts.upload); setStatus("err", t.status_nofile); return; }
     if (file.size > 100 * 1024 * 1024){ alert(t.alerts.max); return; }
 
-    // reset session
     prepared = false;
     isAnalyzing = false;
     lastVideoTime = -1;
@@ -1112,6 +1153,7 @@
     lastTimeSec = null;
     maxSpeedKmh = 0;
     finalPoseFrameUrl = null;
+    window.BADMI_RESULT = null;
 
     $("results").style.display = "none";
     playOverlay.classList.remove("hidden");
@@ -1127,7 +1169,6 @@
       if (!ok){ setLoading(false); return; }
     }
 
-    // load video
     const src = URL.createObjectURL(file);
     videoEl.src = src;
     videoEl.load();
@@ -1207,9 +1248,11 @@
     isAnalyzing = false;
     setLoading(false);
 
-    finalScore = computeFinalScore();          // ✅ 소수 1자리
-    finalSpeed = maxSpeedKmh || 0;             // ✅ 소수 1자리로 표시
+    finalScore = computeFinalScore();      // ✅ 10점 만점, 소수 1자리
+    finalSpeed = round1(maxSpeedKmh || 0); // ✅ 소수 1자리
     finalPoseFrameUrl = canvasEl.toDataURL("image/png");
+
+    window.BADMI_RESULT = { score: finalScore, speed: finalSpeed };
 
     const feedback = getFeedback(finalScore, finalSpeed);
     renderResults(finalScore, finalSpeed, feedback, finalPoseFrameUrl);
@@ -1222,6 +1265,42 @@
     safeGtag("event","analysis_complete",{ score: finalScore, speed: finalSpeed, lang: currentLang });
   }
 
+  function renderResults(score, speed, feedback, poseFrameUrl){
+    const t = i18n[currentLang];
+
+    $("resultsInner").innerHTML = `
+      <div class="sectionTitle">${t.result_title}</div>
+
+      <div class="frameThumb" style="margin-top:10px;">
+        <img src="${poseFrameUrl}" alt="pose frame" />
+      </div>
+
+      <div class="resultGrid">
+        <div class="metric">
+          <div class="label">${t.score}</div>
+          <div class="value">${fixed1(score)}<span class="unit"> / 10</span></div>
+        </div>
+        <div class="metric">
+          <div class="label">${t.speed}</div>
+          <div class="value">${fixed1(speed)}<span class="unit"> km/h</span></div>
+        </div>
+      </div>
+
+      <div class="feedbackBox">
+        <b>${t.feedback_label}:</b><br/>
+        ${escapeHtml(feedback).replaceAll("\n","<br/>")}
+      </div>
+
+      <div style="margin-top:10px;">
+        <button class="action btn-ghost" id="downloadStoryButton" style="width:100%;">${t.save_story}</button>
+      </div>
+    `;
+
+    $("downloadStoryButton").addEventListener("click", async () => {
+      await downloadStoryImage({ poseFrameUrl, score, speed, feedback });
+    });
+  }
+
   // Story image generator (1080x1920)
   async function downloadStoryImage({ poseFrameUrl, score, speed, feedback }){
     const t = i18n[currentLang];
@@ -1230,12 +1309,14 @@
     out.width = W; out.height = H;
     const c = out.getContext("2d");
 
+    // bg
     const g = c.createLinearGradient(0,0,W,H);
     g.addColorStop(0, "#0b1020");
     g.addColorStop(1, "#1b1450");
     c.fillStyle = g;
     c.fillRect(0,0,W,H);
 
+    // title
     c.fillStyle = "rgba(255,255,255,0.92)";
     c.font = "900 54px system-ui, -apple-system, Segoe UI, Roboto";
     c.fillText(
@@ -1245,6 +1326,7 @@
       70, 140
     );
 
+    // frame
     const img = await loadImage(poseFrameUrl);
     const cardX = 70, cardY = 210, cardW = 940, cardH = 1040;
 
@@ -1255,21 +1337,24 @@
     c.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, cardX, cardY, cardW, cardH);
     c.restore();
 
+    // pills
     drawPill(c, 70, 1320, 450, 150,
-      currentLang === "ko" ? `점수  ${round1(score).toFixed(1)}/10` :
-      currentLang === "zh" ? `评分  ${round1(score).toFixed(1)}/10` :
-      `Score  ${round1(score).toFixed(1)}/10`
+      currentLang === "ko" ? `자세 점수  ${fixed1(score)}/10` :
+      currentLang === "zh" ? `动作评分  ${fixed1(score)}/10` :
+      `Score  ${fixed1(score)}/10`
     );
     drawPill(c, 560, 1320, 450, 150,
-      currentLang === "ko" ? `속도  ${round1(speed).toFixed(1)} km/h` :
-      currentLang === "zh" ? `速度  ${round1(speed).toFixed(1)} km/h` :
-      `Speed  ${round1(speed).toFixed(1)} km/h`
+      currentLang === "ko" ? `스매싱 속도  ${fixed1(speed)} km/h` :
+      currentLang === "zh" ? `扣杀速度  ${fixed1(speed)} km/h` :
+      `Smash speed  ${fixed1(speed)} km/h`
     );
 
+    // feedback
     c.fillStyle = "rgba(255,255,255,0.86)";
     c.font = "700 34px system-ui, -apple-system, Segoe UI, Roboto";
     wrapText(c, feedback, 70, 1530, 940, 44, 6);
 
+    // footer
     c.fillStyle = "rgba(255,255,255,0.45)";
     c.font = "700 26px system-ui, -apple-system, Segoe UI, Roboto";
     c.fillText("Made with badmi", 70, 1860);
@@ -1352,97 +1437,6 @@
     if (lines < maxLines) ctx.fillText(line.trim(), x, y + lines*lineHeight);
   }
 
-  function renderResults(score, speed, feedback, poseFrameUrl){
-    const t = i18n[currentLang];
-
-    const savedName = localStorage.getItem("badmi_name") || "";
-    const savedInsta = localStorage.getItem("badmi_insta") || "";
-
-    $("resultsInner").innerHTML = `
-      <div class="sectionTitle">${t.result_title}</div>
-
-      <div class="frameThumb" style="margin-top:10px;">
-        <img src="${poseFrameUrl}" alt="pose frame" />
-      </div>
-
-      <div class="resultGrid">
-        <div class="metric">
-          <div class="label">${t.score}</div>
-          <div class="value">${round1(score).toFixed(1)}<span class="unit"> / 10</span></div>
-        </div>
-        <div class="metric">
-          <div class="label">${t.speed}</div>
-          <div class="value">${round1(speed).toFixed(1)}<span class="unit"> km/h</span></div>
-        </div>
-      </div>
-
-      <div class="feedbackBox">
-        <b>${t.feedback_label}:</b><br/>
-        ${escapeHtml(feedback).replaceAll("\n","<br/>")}
-      </div>
-
-      <div style="margin-top:10px;">
-        <button class="action btn-ghost" id="downloadStoryButton" style="width:100%;">${t.save_story}</button>
-      </div>
-
-      <!-- ✅ 랭킹 등록: 맨 하단 -->
-      <div class="row" style="flex-direction:column; align-items:stretch; margin-top:14px;">
-        <div class="sectionTitle" style="margin:0 0 6px;">🏆 랭킹 등록</div>
-        <input class="nick" id="nameInput" maxlength="20"
-          placeholder="${currentLang==="ko" ? "이름/닉네임 (예: 윤서)" : currentLang==="zh" ? "姓名/昵称" : "Name / Nickname"}"
-          value="${escapeHtml(savedName)}" />
-        <input class="nick" id="instaInput" maxlength="30"
-          placeholder="${currentLang==="ko" ? "인스타 아이디 (예: @yoondminton)" : currentLang==="zh" ? "Instagram（例：@yoondminton）" : "Instagram (e.g., @yoondminton)"}"
-          value="${escapeHtml(savedInsta)}" />
-        <button class="action btn-primary" id="submitRankButton" style="width:100%;">🏆 ${t.submit_rank}</button>
-        <div class="small" style="margin-top:8px; color: rgba(255,255,255,0.65);">
-          제출 후 상단 TOP 20도 자동 갱신돼요.
-        </div>
-      </div>
-    `;
-
-    $("downloadStoryButton").addEventListener("click", async () => {
-      await downloadStoryImage({ poseFrameUrl, score, speed, feedback });
-    });
-
-    $("submitRankButton").addEventListener("click", async () => {
-      const name = $("nameInput").value.trim();
-      let insta = $("instaInput").value.trim();
-
-      if (!name){
-        alert(currentLang==="ko" ? "이름/닉네임을 입력해줘!" : currentLang==="zh" ? "请输入昵称！" : "Please enter your name!");
-        return;
-      }
-      if (!insta){
-        alert(currentLang==="ko" ? "인스타 아이디를 입력해줘!" : currentLang==="zh" ? "请输入 Instagram！" : "Please enter your Instagram!");
-        return;
-      }
-      if (!insta.startsWith("@")) insta = "@" + insta;
-
-      localStorage.setItem("badmi_name", name);
-      localStorage.setItem("badmi_insta", insta);
-
-      try{
-        $("submitRankButton").disabled = true;
-        $("submitRankButton").textContent = "⏳ ...";
-
-        await submitRanking(name, insta, round1(score), round1(speed));
-
-        // ✅ 상단 랭킹 갱신
-        await refreshTopCard();
-
-        safeGtag("event","rank_submit",{ lang: currentLang, score: round1(score), speed: round1(speed) });
-        alert(currentLang==="ko" ? "랭킹 등록 완료!" : currentLang==="zh" ? "提交成功！" : "Submitted!");
-      }catch(e){
-        console.error(e);
-        alert(i18n[currentLang].rank_fail);
-      }finally{
-        $("submitRankButton").disabled = false;
-        $("submitRankButton").innerHTML = `🏆 ${i18n[currentLang].submit_rank}`;
-      }
-    });
-  }
-
   // Events
   $("videoUpload").addEventListener("change", (e) => {
     const file = e.target.files[0];
@@ -1463,6 +1457,7 @@
     lastWrist3d = null;
     lastTimeSec = null;
     finalPoseFrameUrl = null;
+    window.BADMI_RESULT = null;
 
     ctx.clearRect(0,0,canvasEl.width, canvasEl.height);
     videoEl.pause();
@@ -1481,7 +1476,7 @@
     safeGtag("event","reset",{ lang: currentLang });
   });
 
-  playOverlay.addEventListener("click", startPlayback);
+  $("playOverlay").addEventListener("click", startPlayback);
 
   videoEl.addEventListener("ended", () => {
     if (prepared) finishAnalysis();
@@ -1493,12 +1488,11 @@
   });
 
   // Init UI
+  loadRankInputs();
   setLang("ko");
   setLoading(false);
   resetBtn.disabled = true;
-
-  // ✅ Load ranking on top immediately
-  refreshTopCard();
+  refreshTop20();
 </script>
 </body>
 </html>
