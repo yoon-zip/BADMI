@@ -601,7 +601,7 @@
           <tbody>${rows || `<tr><td colspan="4">아직 등록된 기록이 없어요!</td></tr>`}</tbody>
         </table>
         ${meRow}
-        <div class="rankHint">※ 중복 방지: (이름+인스타) 기준으로 하루 1회(더 좋은 기록이면 갱신)</div>
+        <div class="rankHint">※ 꼭 이름이 아니어도 괜찮아요! </div>
       </div>
     `;
   }
@@ -1196,10 +1196,15 @@
     $("resultsInner").innerHTML = `
       <div class="sectionTitle">${t.result_title}</div>
 
+      <!-- ✅ TOP 20 맨 위 -->
+      <div id="rankArea" style="margin-top:10px;">
+        <div class="rankBox">${t.rank_loading}</div>
+      </div>
+    
       <div class="frameThumb" style="margin-top:10px;">
         <img src="${poseFrameUrl}" alt="pose frame" />
       </div>
-
+    
       <div class="resultGrid">
         <div class="metric">
           <div class="label">${t.score}</div>
@@ -1210,17 +1215,19 @@
           <div class="value">${Math.round(speed)}<span class="unit"> km/h</span></div>
         </div>
       </div>
-
+    
       <div class="feedbackBox">
         <b>${t.feedback_label}:</b><br/>
         ${escapeHtml(feedback).replaceAll("\n","<br/>")}
       </div>
-
+    
       <div class="row" style="flex-direction:column; align-items:stretch;">
         <input class="nick" id="nameInput" maxlength="10" placeholder="${currentLang==="ko" ? "이름 (예: 윤서)" : currentLang==="zh" ? "姓名（例：Yoon）" : "Name (e.g., Yoon)"}" value="${escapeHtml(savedName)}" />
         <input class="nick" id="instaInput" maxlength="20" placeholder="${currentLang==="ko" ? "인스타 아이디 (예: @yoondminton)" : currentLang==="zh" ? "Instagram（例：@yoondminton）" : "Instagram (e.g., @yoondminton)"}" value="${escapeHtml(savedInsta)}" />
         <button class="action btn-primary" id="submitRankButton" style="width:100%;">🏆 ${t.submit_rank}</button>
       </div>
+    `;
+
 
       <div id="rankArea" style="margin-top:10px;">
         <div class="rankBox">${t.rank_loading}</div>
