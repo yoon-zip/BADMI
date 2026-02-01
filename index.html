@@ -1122,12 +1122,22 @@
 
   function computeFinalScore(){
     if (scoreSamples.length === 0) return 0;
+  
     const sorted = [...scoreSamples].sort((a,b)=>b-a);
     const topCount = Math.max(6, Math.floor(sorted.length * 0.25));
     const top = sorted.slice(0, topCount);
-    const avgTop = top.reduce((sum,v)=>sum+v,0) / top.length;
-    return round1(avgTop);
+  
+    const avgTop = top.reduce((sum,v)=>sum+v,0) / top.length; // raw (0~10)
+    const raw = round1(avgTop);
+  
+    // ✅ 여기서 체감 조절
+    const SCORE_BIAS = 1.7;   // 전체적으로 후한 느낌 줄이기(1.2~2.0 사이 추천)
+    const SCORE_CAP  = 8.0;   // 웬만하면 8점 넘지 않게
+  
+    const adjusted = clamp(raw - SCORE_BIAS, 0, SCORE_CAP);
+    return round1(adjusted);
   }
+
 
   function sampleWristSpeedFromWorld(results){
     const wl = results.worldLandmarks?.[0];
