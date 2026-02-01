@@ -1261,7 +1261,17 @@
 
   function renderResults(score, speed, feedback, poseFrameUrl){
     const t = i18n[currentLang];
-    const savedNick = localStorage.getItem("badmi_nick") || "";
+    const savedName2 = localStorage.getItem("badmi_name") || "";
+    const savedInsta2 = localStorage.getItem("badmi_insta") || "";
+    const savedNick2 = (savedName2 && savedInsta2) ? `${savedName2} ${savedInsta2}` : "";
+
+    (async ()=>{
+      try{
+        const data = await fetchTop(savedNick2);
+        $("rankArea").innerHTML = renderRankTable(data.top20, data.me);
+      }catch(e){}
+    })();
+
 
     $("resultsInner").innerHTML = `
       <div class="sectionTitle">${t.result_title}</div>
@@ -1289,11 +1299,13 @@
       <div style="margin-top:10px;">
         <button class="action btn-ghost" id="downloadStoryButton" style="width:100%;">${t.save_story}</button>
       </div>
-
-      <div class="row">
-        <input class="nick" id="nickInput" maxlength="16" placeholder="${escapeHtml(t.nick_ph)}" value="${escapeHtml(savedNick)}" />
-        <button class="action btn-primary" id="submitRankButton" style="padding:12px 14px;">🏆 ${t.submit_rank}</button>
+      
+      <div class="row" style="flex-direction:column; align-items:stretch;">
+        <input class="nick" id="nameInput" maxlength="10" placeholder="이름 (예: 윤서)" value="" />
+        <input class="nick" id="instaInput" maxlength="20" placeholder="인스타 아이디 (예: @yoondminton)" value="" />
+        <button class="action btn-primary" id="submitRankButton" style="width:100%;">🏆 ${t.submit_rank}</button>
       </div>
+
 
       <div id="rankArea"></div>
     `;
