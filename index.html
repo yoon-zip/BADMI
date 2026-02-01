@@ -1,1 +1,1528 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>badmi | Smash Analyzer</title>
 
+  <!-- Google Analytics (GA4) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CNMTT9RMY8"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-CNMTT9RMY8');
+  </script>
+
+  <!-- Google AdSense (site-wide loader) -->
+  <script async
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3392083121307952"
+    crossorigin="anonymous"></script>
+
+  <style>
+    :root{
+      --bg:#0b1020;
+      --card: rgba(255,255,255,0.06);
+      --card2: rgba(255,255,255,0.10);
+      --stroke: rgba(255,255,255,0.12);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.65);
+      --accent:#7c3aed;
+      --accent2:#22c55e;
+      --danger:#ef4444;
+      --shadow: 0 18px 50px rgba(0,0,0,0.35);
+      --radius: 18px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 500px at 10% 10%, rgba(124,58,237,0.35), transparent 60%),
+        radial-gradient(800px 450px at 90% 20%, rgba(34,197,94,0.22), transparent 55%),
+        radial-gradient(900px 700px at 50% 110%, rgba(59,130,246,0.12), transparent 55%),
+        var(--bg);
+      min-height:100vh;
+    }
+
+    .wrap{
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 16px 14px 118px;
+    }
+
+    .topbar{
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 10px 0 12px;
+      background: linear-gradient(180deg, rgba(11,16,32,0.92), rgba(11,16,32,0.55), rgba(11,16,32,0));
+      backdrop-filter: blur(8px);
+    }
+
+    .titleRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .brand{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width: 0;
+    }
+    h1{
+      margin:0;
+      font-size: 18px;
+      font-weight: 950;
+      letter-spacing:-0.02em;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    .sub{
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .lang-switch{
+      display:flex;
+      gap:6px;
+      flex-shrink:0;
+    }
+    .lang-switch button{
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--stroke);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-weight: 900;
+      cursor:pointer;
+      font-size: 12px;
+      line-height: 1;
+    }
+    .lang-switch button.active{
+      background: linear-gradient(135deg, rgba(124,58,237,1), rgba(59,130,246,1));
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      margin-top: 12px;
+    }
+    .inner{ padding: 14px; }
+    .sectionTitle{
+      margin:0 0 8px;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing:-0.01em;
+    }
+    .hint{ color: var(--muted); font-size: 13px; line-height:1.5; }
+    .small{ color: var(--muted); font-size: 12px; }
+
+    details{
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      background: rgba(0,0,0,0.16);
+      padding: 10px 12px;
+      margin-top: 10px;
+    }
+    summary{
+      cursor:pointer;
+      font-weight: 900;
+      font-size: 13px;
+      color: var(--text);
+      list-style:none;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .tips{
+      margin: 10px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height:1.55;
+    }
+
+    /* Video 9:16 */
+    #videoContainer{
+      position: relative;
+      width: 100%;
+      border-radius: var(--radius);
+      overflow:hidden;
+      border: 1px solid var(--stroke);
+      background: rgba(0,0,0,0.25);
+      box-shadow: var(--shadow);
+    }
+    #videoContainer::before{
+      content:"";
+      display:block;
+      padding-top: 177.78%; /* 9:16 */
+    }
+    video, canvas{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit: cover;
+    }
+    canvas{ pointer-events:none; }
+
+    .hud{
+      position:absolute;
+      left:12px;
+      top:12px;
+      z-index:5;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .pill{
+      width: fit-content;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.36);
+      border: 1px solid rgba(255,255,255,0.16);
+      backdrop-filter: blur(8px);
+      font-size: 12px;
+      color: var(--text);
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .playOverlay{
+      position:absolute;
+      inset:0;
+      z-index:10;
+      display:grid;
+      place-items:center;
+      border:0;
+      background: rgba(0,0,0,0.30);
+      color: rgba(255,255,255,0.95);
+      font-size: 18px;
+      font-weight: 950;
+      cursor:pointer;
+    }
+    .playOverlay .bubble{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 14px 18px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.18);
+      backdrop-filter: blur(8px);
+    }
+    .playOverlay.hidden{ display:none; }
+
+    /* Status line */
+    .statusLine{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .dot{
+      width:10px; height:10px; border-radius:999px;
+      background: rgba(255,255,255,0.35);
+      box-shadow: 0 0 0 6px rgba(255,255,255,0.05);
+    }
+    .dot.live{ background: var(--accent2); box-shadow: 0 0 0 6px rgba(34,197,94,0.18); }
+    .dot.err{ background: var(--danger); box-shadow: 0 0 0 6px rgba(239,68,68,0.18); }
+
+    /* Results */
+    #results{ display:none; }
+    .resultGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .metric{
+      background: var(--card2);
+      border: 1px solid var(--stroke);
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .metric .label{ color: var(--muted); font-size: 11px; }
+    .metric .value{ margin-top: 6px; font-size: 24px; font-weight: 950; }
+    .metric .unit{ font-size: 13px; font-weight: 800; color: rgba(255,255,255,0.70); }
+
+    .feedbackBox{
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--stroke);
+      line-height: 1.55;
+      font-size: 13px;
+    }
+    .frameThumb{
+      width:100%;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.14);
+      overflow:hidden;
+      background: rgba(0,0,0,0.20);
+    }
+    .frameThumb img{
+      width:100%;
+      display:block;
+    }
+
+    .rankBox{
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--stroke);
+      line-height: 1.55;
+      font-size: 13px;
+    }
+    .rankTable{
+      width:100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.88);
+    }
+    .rankTable th, .rankTable td{
+      padding: 8px 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      text-align:left;
+      vertical-align: middle;
+    }
+    .rankTable th{ color: rgba(255,255,255,0.60); font-weight: 900; }
+    .rankRowMe{
+      background: rgba(124,58,237,0.18);
+      border-radius: 10px;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-top: 10px;
+    }
+    input.nick{
+      flex: 1;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--stroke);
+      border-radius: 12px;
+      padding: 12px 12px;
+      color: var(--text);
+      outline: none;
+      font-weight: 900;
+    }
+
+    /* Sticky action bar */
+    .actionBar{
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 50;
+      padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+      background: rgba(11,16,32,0.75);
+      border-top: 1px solid rgba(255,255,255,0.10);
+      backdrop-filter: blur(10px);
+    }
+    .actionRow{
+      max-width: 760px;
+      margin: 0 auto;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    button.action{
+      border:0;
+      border-radius: 14px;
+      padding: 14px 14px;
+      font-weight: 950;
+      cursor:pointer;
+      transition: transform .08s ease, opacity .12s ease;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      font-size: 14px;
+    }
+    button.action:active{ transform: translateY(1px); }
+    button.action[disabled]{ opacity:0.55; cursor:not-allowed; }
+
+    .btn-primary{
+      background: linear-gradient(135deg, rgba(124,58,237,1), rgba(59,130,246,1));
+      color:white;
+    }
+    .btn-ghost{
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--stroke);
+      color: var(--text);
+    }
+
+    @media (min-width: 900px){
+      h1{ font-size: 20px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="titleRow">
+        <div class="brand">
+          <h1 id="t_title">🏸 배드민턴 스매싱 분석기</h1>
+          <div class="sub" id="t_sub">세로 촬영 권장(촬영 팁 아래 클릭)</div>
+        </div>
+
+        <div class="lang-switch" aria-label="language switch">
+          <button type="button" data-lang="ko" class="active">KR</button>
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="zh">中文</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload -->
+    <div class="card">
+      <div class="inner">
+        <div class="sectionTitle" id="t_step1">1) 영상 업로드</div>
+        <div class="hint" id="t_step1_hint">
+          업로드 후 아래 하단의 <b>분석 시작</b>을 누르고,
+          신체 분석이 잘 되었나 보고 싶다면 <b>재생</b> 버튼을 눌러주세요.
+          결과는 금방 나와요.
+        </div>
+
+        <div style="margin-top:10px;">
+          <input type="file" id="videoUpload" accept="video/mp4,video/quicktime,video/webm" style="width:100%;" />
+        </div>
+
+        <details>
+          <summary id="t_tips_title">촬영 팁 보기</summary>
+          <ul class="tips" id="t_tips_list"></ul>
+        </details>
+
+        <div class="statusLine">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="dot" id="statusDot"></span>
+            <span id="statusText">대기 중</span>
+          </div>
+          <span id="loading" style="display:none; font-weight:950; color: rgba(255,255,255,0.85);">분석 중…</span>
+        </div>
+
+        <div class="small" style="margin-top:10px;" id="t_privacy">
+          ※ 업로드한 영상은 브라우저에서만 처리됩니다.
+        </div>
+      </div>
+    </div>
+
+    <!-- Video -->
+    <div class="card">
+      <div class="inner">
+        <div class="sectionTitle" id="t_step2">2) 하단 ‘분석 시작’ 버튼 누르기</div>
+        <div class="hint" id="t_step2_hint">
+          영상 가이드에 맞게 찍어주셔야 분석이 잘 되어요.
+        </div>
+      </div>
+
+      <div id="videoContainer">
+        <div class="hud">
+          <div class="pill" id="hudPill">⏳ 열심히 분석할 준비 중이에요</div>
+        </div>
+
+        <button id="playOverlay" class="playOverlay" type="button">
+          <div class="bubble">▶ <span id="t_play">재생</span></div>
+        </button>
+
+        <video id="video" muted playsinline></video>
+        <canvas id="output_canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="card" id="results">
+      <div class="inner" id="resultsInner"></div>
+    </div>
+  </div>
+
+  <!-- Sticky action bar -->
+  <div class="actionBar">
+    <div class="actionRow">
+      <button class="action btn-primary" id="startButton">⚙️ <span id="t_start">분석 시작</span></button>
+      <button class="action btn-ghost" id="resetButton" disabled>↩️ <span id="t_reset">초기화</span></button>
+    </div>
+  </div>
+
+<script type="module">
+  import { PoseLandmarker, FilesetResolver, DrawingUtils } from "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.0";
+
+  // ✅ 너가 배포한 Apps Script Web App URL
+  const RANK_API = "https://script.google.com/macros/s/AKfycbyApCVbBY4qrSY5DiIag-eksyI-gi8QLQvCcFLAUXO_bQEjjJb9YcYAW66uElzSDrnQdg/exec";
+
+  // Helpers
+  const $ = (id) => document.getElementById(id);
+  function safeGtag(...args){
+    try{ if (typeof gtag === "function") gtag(...args); }catch(e){}
+  }
+  function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+  function round1(n){ return Math.round(n * 10) / 10; }
+
+  // JSONP (CORS 걱정 없이 Apps Script 읽기)
+  function jsonp(url){
+    return new Promise((resolve, reject) => {
+      const cb = "__badmi_cb_" + Math.random().toString(36).slice(2);
+      const s = document.createElement("script");
+      const sep = url.includes("?") ? "&" : "?";
+      s.src = url + sep + "callback=" + cb;
+
+      window[cb] = (data) => {
+        try{
+          resolve(data);
+        } finally {
+          delete window[cb];
+          s.remove();
+        }
+      };
+      s.onerror = () => {
+        delete window[cb];
+        s.remove();
+        reject(new Error("JSONP failed"));
+      };
+      document.head.appendChild(s);
+    });
+  }
+
+  function getLocalDateKey(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const day = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`; // 닉네임+날짜 중복키
+  }
+
+  // i18n
+  const i18n = {
+    ko: {
+      title: "🏸 배드민턴 스매싱 분석기",
+      sub: "세로 촬영 권장(촬영 팁 아래 클릭)",
+      step1: "1) 영상 업로드",
+      step1_hint_html:
+        "업로드 후 아래 하단의 <b>분석 시작</b>을 누르고, " +
+        "신체 분석이 잘 되었나 보고 싶다면 <b>재생</b> 버튼을 눌러주세요. " +
+        "결과는 금방 나와요.",
+      tips_title: "촬영 팁 보기",
+      step2: "2) 하단 ‘분석 시작’ 버튼 누르기",
+      step2_hint: "영상 가이드에 맞게 찍어주셔야 분석이 잘 되어요.",
+      play: "재생",
+      start: "분석 시작",
+      reset: "초기화",
+      privacy: "※ 업로드한 영상은 브라우저에서만 처리됩니다.",
+      hud_wait: "⏳ 열심히 분석할 준비 중이에요",
+      hud_ready: "✅ 준비 완료! 영상 위 재생을 눌러주세요",
+      hud_analyzing: "🔎 분석 중… (끝나면 결과 표시)",
+      hud_done: "✅ 분석 완료! 아래 결과 확인",
+      status_idle: "대기 중",
+      status_ready: "준비 완료",
+      status_analyzing: "분석 중",
+      status_done: "분석 완료",
+      status_initfail: "초기화 실패",
+      status_nofile: "영상이 없어요",
+      result_title: "✅ 분석 결과",
+      score: "자세 점수",
+      speed: "추정 스매싱 속도",
+      save_story: "📱 스토리 이미지 저장 (1080×1920)",
+      feedback_label: "피드백",
+      rank_title: "🏆 오늘의 랭킹",
+      nick_ph: "닉네임 (예: yoon)",
+      submit_rank: "랭킹 등록",
+      my_rank: "내 순위",
+      tips_list: [
+        "세로 촬영 권장",
+        "전신(발~라켓 팔 손목)이 프레임 안에 들어오게",
+        "밝은 조명 + 어두운 배경이 인식 안정적",
+        "정면 보다는 측면 추천",
+        "5~10초, 100MB 이하"
+      ],
+      alerts: {
+        upload: "영상을 업로드하세요.",
+        max: "파일 크기는 100MB 이하여야 합니다.",
+        initfail: "초기화 실패. 브라우저 콘솔(F12) 확인 또는 Chrome 최신 버전 사용을 권장합니다.",
+        playfail: "재생에 실패했어요. 모바일은 사용자 제스처가 필요할 수 있어요.",
+        nick: "닉네임을 입력해줘!",
+        rank_fail: "랭킹 서버 연결이 잠깐 불안정해요. 조금 뒤 다시 시도해줘!"
+      },
+      save_done_title: "✅ 저장 완료!",
+      save_done_body:
+        "스토리 이미지가 저장됐어요.\n\n" +
+        "iPhone: 파일 앱 > 다운로드에서 확인 → 공유 버튼 → 사진에 저장(또는 인스타로 공유)\n" +
+        "Android: 다운로드(Downloads) 폴더에서 확인 → 갤러리에 표시됨(기기별 상이)"
+    },
+
+    en: {
+      title: "🏸 Badminton Smash Analyzer",
+      sub: "Vertical filming recommended (tap Filming Tips below)",
+      step1: "1) Upload Video",
+      step1_hint_html:
+        "After uploading, tap <b>Start Analysis</b> at the bottom. " +
+        "If you want to check whether body tracking works well, press <b>Play</b>. " +
+        "Results appear quickly.",
+      tips_title: "Filming Tips",
+      step2: "2) Tap ‘Start Analysis’ at the bottom",
+      step2_hint: "Please follow the filming guide for stable tracking.",
+      play: "Play",
+      start: "Start Analysis",
+      reset: "Reset",
+      privacy: "※ Your video is processed locally in your browser.",
+      hud_wait: "⏳ Getting ready to analyze…",
+      hud_ready: "✅ Ready! Press Play on the video",
+      hud_analyzing: "🔎 Analyzing… (results after it ends)",
+      hud_done: "✅ Done! Check results below",
+      status_idle: "Idle",
+      status_ready: "Ready",
+      status_analyzing: "Analyzing",
+      status_done: "Completed",
+      status_initfail: "Init failed",
+      status_nofile: "No video",
+      result_title: "✅ Result",
+      score: "Form Score",
+      speed: "Estimated Smash Speed",
+      save_story: "📱 Save Story Image (1080×1920)",
+      feedback_label: "Feedback",
+      rank_title: "🏆 Today’s Ranking",
+      nick_ph: "Nickname (e.g., yoon)",
+      submit_rank: "Submit to Ranking",
+      my_rank: "My Rank",
+      tips_list: [
+        "Vertical (9:16) recommended",
+        "Keep full body in frame (feet → hitting wrist)",
+        "Bright lighting + dark background helps tracking",
+        "Side view is better than front view",
+        "5–10 seconds, under 100MB"
+      ],
+      alerts: {
+        upload: "Please upload a video.",
+        max: "File must be under 100MB.",
+        initfail: "Initialization failed. Check console or use the latest Chrome.",
+        playfail: "Playback failed. Mobile may require a user gesture.",
+        nick: "Please enter a nickname!",
+        rank_fail: "Ranking server is unstable. Please try again soon!"
+      },
+      save_done_title: "✅ Saved!",
+      save_done_body:
+        "Your story image has been saved.\n\n" +
+        "iPhone: Files app > Downloads → Share → Save Image (or share to Instagram)\n" +
+        "Android: Check Downloads folder → it may appear in Gallery (varies by device)"
+    },
+
+    zh: {
+      title: "🏸 羽毛球扣杀分析器",
+      sub: "建议竖屏拍摄（点击下方拍摄提示）",
+      step1: "1) 上传视频",
+      step1_hint_html:
+        "上传后点击底部的 <b>开始分析</b>。 " +
+        "如果想确认身体追踪是否正常，请点击 <b>播放</b>。 " +
+        "结果会很快出现。",
+      tips_title: "拍摄提示",
+      step2: "2) 点击底部“开始分析”按钮",
+      step2_hint: "请按拍摄指南录制，识别会更稳定。",
+      play: "播放",
+      start: "开始分析",
+      reset: "重置",
+      privacy: "※ 视频仅在浏览器本地处理。",
+      hud_wait: "⏳ 正在准备分析…",
+      hud_ready: "✅ 已就绪！点击视频播放",
+      hud_analyzing: "🔎 分析中…（结束后出结果）",
+      hud_done: "✅ 完成！查看下方结果",
+      status_idle: "待机",
+      status_ready: "已就绪",
+      status_analyzing: "分析中",
+      status_done: "已完成",
+      status_initfail: "初始化失败",
+      status_nofile: "未选择视频",
+      result_title: "✅ 分析结果",
+      score: "动作评分",
+      speed: "估计扣杀速度",
+      save_story: "📱 保存Story图片 (1080×1920)",
+      feedback_label: "反馈",
+      rank_title: "🏆 今日排行",
+      nick_ph: "昵称（例如 yoon）",
+      submit_rank: "提交排行",
+      my_rank: "我的排名",
+      tips_list: [
+        "建议竖屏拍摄",
+        "全身入镜（脚 → 挥拍手腕）",
+        "明亮光线 + 深色背景更稳定",
+        "侧面比正面更推荐",
+        "5–10秒，低于100MB"
+      ],
+      alerts: {
+        upload: "请先上传视频。",
+        max: "文件需小于100MB。",
+        initfail: "初始化失败。请查看控制台或使用最新版Chrome。",
+        playfail: "播放失败。手机端可能需要用户点击触发播放。",
+        nick: "请输入昵称！",
+        rank_fail: "排行服务器不稳定，请稍后再试！"
+      },
+      save_done_title: "✅ 已保存！",
+      save_done_body:
+        "Story 图片已保存。\n\n" +
+        "iPhone：文件App > 下载 → 分享 → 存储到照片（或分享到 Instagram）\n" +
+        "Android：查看 Downloads 文件夹 → 可能会显示在相册（因机型而异）"
+    }
+  };
+
+  // UI refs
+  const statusDot = $("statusDot");
+  const statusText = $("statusText");
+  const loadingEl = $("loading");
+  const hudPill = $("hudPill");
+  const startBtn = $("startButton");
+  const resetBtn = $("resetButton");
+
+  const videoEl = $("video");
+  const canvasEl = $("output_canvas");
+  const ctx = canvasEl.getContext("2d");
+  const playOverlay = $("playOverlay");
+
+  function setStatus(mode, text){
+    statusText.textContent = text;
+    statusDot.classList.remove("live","err");
+    if (mode === "live") statusDot.classList.add("live");
+    if (mode === "err") statusDot.classList.add("err");
+  }
+  function setHUD(text){ hudPill.textContent = text; }
+  function setLoading(on){ loadingEl.style.display = on ? "inline" : "none"; }
+
+  // Language
+  let currentLang = "ko";
+  function setLang(lang){
+    currentLang = lang;
+    const t = i18n[lang];
+
+    $("t_title").textContent = t.title;
+    $("t_sub").textContent = t.sub;
+    $("t_step1").textContent = t.step1;
+    $("t_step1_hint").innerHTML = t.step1_hint_html;
+    $("t_tips_title").textContent = t.tips_title;
+    $("t_step2").textContent = t.step2;
+    $("t_step2_hint").textContent = t.step2_hint;
+    $("t_play").textContent = t.play;
+    $("t_start").textContent = t.start;
+    $("t_reset").textContent = t.reset;
+    $("t_privacy").textContent = t.privacy;
+
+    const tipsUl = $("t_tips_list");
+    tipsUl.innerHTML = "";
+    t.tips_list.forEach(x=>{
+      const li = document.createElement("li");
+      li.textContent = x;
+      tipsUl.appendChild(li);
+    });
+
+    document.querySelectorAll(".lang-switch button").forEach(b=>{
+      b.classList.toggle("active", b.dataset.lang === lang);
+    });
+
+    if (!prepared) {
+      setHUD(t.hud_wait);
+      setStatus("", t.status_idle);
+    }
+
+    safeGtag("event","change_language",{ lang });
+  }
+  document.querySelectorAll(".lang-switch button").forEach(btn=>{
+    btn.addEventListener("click", ()=> setLang(btn.dataset.lang));
+  });
+
+  // Pose
+  let poseLandmarker = null;
+  let drawingUtils = null;
+  let prepared = false;
+  let isAnalyzing = false;
+  let lastVideoTime = -1;
+
+  // Speed sampling (world landmarks)
+  let lastWrist3d = null;
+  let lastTimeSec = null;
+  let maxSpeedKmh = 0;
+
+  // Score samples
+  let scoreSamples = [];
+
+  // final capture
+  let finalPoseFrameUrl = null;
+  let finalScore = 0;
+  let finalSpeed = 0;
+
+  async function initPoseLandmarker(){
+    try{
+      const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+      );
+      poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task",
+          delegate: "GPU"
+        },
+        runningMode: "VIDEO",
+        numPoses: 1,
+        minPoseDetectionConfidence: 0.3,
+        minPosePresenceConfidence: 0.3,
+        minTrackingConfidence: 0.3,
+        outputWorldLandmarks: true
+      });
+      drawingUtils = new DrawingUtils(ctx);
+      return true;
+    }catch(e){
+      console.error("PoseLandmarker init failed:", e);
+      setStatus("err", i18n[currentLang].status_initfail);
+      alert(i18n[currentLang].alerts.initfail);
+      return false;
+    }
+  }
+
+  function calculateAngle(a,b,c){
+    const ab = { x: a.x - b.x, y: a.y - b.y };
+    const cb = { x: c.x - b.x, y: c.y - b.y };
+    const dot = ab.x*cb.x + ab.y*cb.y;
+    const modAb = Math.hypot(ab.x, ab.y);
+    const modCb = Math.hypot(cb.x, cb.y);
+    if (modAb === 0 || modCb === 0) return 0;
+    const cos = clamp(dot / (modAb*modCb), -1, 1);
+    return Math.acos(cos) * 180 / Math.PI;
+  }
+
+  // ✅ 점수: "좀 짜게" + 프레임 단위 0~10
+  function calculateScoreStrict(lm){
+    let s = 10;
+
+    const rs = lm[12] || {x:0,y:0}; // right shoulder
+    const re = lm[14] || {x:0,y:0}; // right elbow
+    const rw = lm[16] || {x:0,y:0}; // right wrist
+
+    const lh = lm[23] || {x:0,y:0}; // left hip
+    const lk = lm[25] || {x:0,y:0}; // left knee
+    const la = lm[27] || {x:0,y:0}; // left ankle
+
+    const rh = lm[24] || {x:0,y:0};
+    const rk = lm[26] || {x:0,y:0};
+    const ra = lm[28] || {x:0,y:0};
+
+    // 1) 팔꿈치가 어깨보다 많이 낮으면 감점 (엄격)
+    if (re.y > rs.y + 0.05) s -= 3.2;
+    else if (re.y > rs.y + 0.02) s -= 1.6;
+
+    // 2) 손목이 팔꿈치보다 너무 낮으면 감점 (임팩트/스윙 경로)
+    if (rw.y > re.y + 0.06) s -= 1.4;
+
+    // 3) 무릎 각도(양쪽 평균): 너무 펴져 있으면 감점
+    const angL = calculateAngle(lh, lk, la);
+    const angR = calculateAngle(rh, rk, ra);
+    const ang = (angL && angR) ? (angL + angR) / 2 : (angL || angR || 0);
+
+    if (ang > 170) s -= 2.6;
+    else if (ang > 160) s -= 1.8;
+    else if (ang > 150) s -= 1.0;
+
+    // 4) 상체가 너무 세워진 프레임(대충 hip-shoulder y 차) 감점(살짝)
+    const hipMidY = (lh.y + rh.y) / 2;
+    const shMidY  = (lm[11]?.y ?? rs.y + 0.02 + rs.y) / 2;
+    const torso = hipMidY - shMidY; // 값 클수록 상체 길게 보임
+    if (torso < 0.18) s -= 0.9;
+
+    // 5) 기본적으로 전체 점수 "짠맛" 한 번 더
+    s -= 0.9;
+
+    return clamp(s, 0, 10);
+  }
+
+  function computeFinalScore(){
+    if (scoreSamples.length === 0) return 0;
+    // 상위 25% 평균
+    const sorted = [...scoreSamples].sort((a,b)=>b-a);
+    const topCount = Math.max(8, Math.floor(sorted.length * 0.25));
+    const top = sorted.slice(0, topCount);
+    const avgTop = top.reduce((sum,v)=>sum+v,0) / top.length;
+
+    // 최종 보정(짠맛 유지) + 소수점 1자리
+    const final = clamp(avgTop - 0.6, 0, 10);
+    return round1(final);
+  }
+
+  function sampleWristSpeedFromWorld(results){
+    const wl = results.worldLandmarks?.[0];
+    if (!wl) return;
+    const wrist = wl[16];
+    const t = videoEl.currentTime;
+
+    if (lastWrist3d && lastTimeSec != null){
+      const dt = t - lastTimeSec;
+      if (dt > 0.0001){
+        const dx = wrist.x - lastWrist3d.x;
+        const dy = wrist.y - lastWrist3d.y;
+        const dz = wrist.z - lastWrist3d.z;
+        const v_ms = Math.sqrt(dx*dx + dy*dy + dz*dz) / dt;
+        const v_kmh = v_ms * 3.6;
+        maxSpeedKmh = Math.max(maxSpeedKmh, Math.min(300, v_kmh));
+      }
+    }
+    lastWrist3d = wrist;
+    lastTimeSec = t;
+  }
+
+  function pick(arr){
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  // ✅ 점수/속도별 멘트 + 팁 다양화
+  function buildFeedback(score, speed){
+    const t = i18n[currentLang];
+
+    // 속도 라벨
+    const s = Math.round(speed);
+    const speedTier =
+      s >= 220 ? "vfast" :
+      s >= 180 ? "fast" :
+      s >= 140 ? "mid" : "slow";
+
+    const libs = {
+      ko: {
+        praise10: [
+          "혹시… 선수신가요? 폼이 너무 깔끔한데요 😳",
+          "와 이건 진짜 고수 느낌… 타점/흐름이 좋아요.",
+          "오늘 컨디션 미쳤다. 이 정도면 클럽 에이스!"
+        ],
+        high: [
+          "좋아요! 임팩트가 안정적이에요.",
+          "폼이 꽤 단단해요. 작은 디테일만 다듬으면 더 쎄질 듯!",
+          "좋은데요? 상체-하체 연결이 자연스러워요."
+        ],
+        mid: [
+          "괜찮아요! 지금도 충분히 좋아요. 다만 한두 포인트만 손보면 확 올라가요.",
+          "나쁘지 않아요. 안정감만 조금 더 올리면 점수 확 뛰어요.",
+          "기본기는 좋아요. 다음은 ‘타점’이랑 ‘무릎’이 관건!"
+        ],
+        low: [
+          "지금도 가능성 보여요. 영상 가이드만 조금 더 맞추면 분석/자세 둘 다 좋아져요!",
+          "괜찮아! 여기서 딱 2가지만 바꾸면 체감 확 와요.",
+          "아직은 자세가 흔들리는 프레임이 있어요. 한 포인트씩 잡아봅시다!"
+        ],
+        tips: {
+          elbow: [
+            "팁: 팔꿈치를 ‘어깨 높이’ 근처로 올리고 스윙하면 라인이 더 좋아져요.",
+            "팁: 팔꿈치가 내려가면 힘이 새요. 팔꿈치 먼저 세우고 들어가봐요."
+          ],
+          knee: [
+            "팁: 무릎을 살짝 굽히고(스플릿스텝 느낌) 임팩트하면 속도랑 안정감이 같이 올라가요.",
+            "팁: 무릎이 너무 펴지면 타점이 낮아져요. ‘살짝’만 더 굽혀봐요."
+          ],
+          balance: [
+            "팁: 몸 중심이 뒤로 빠지지 않게 복부에 힘 주고 ‘앞발’에 실어보세요.",
+            "팁: 임팩트 순간 상체가 서면 힘이 덜 실려요. 가슴을 살짝 앞으로."
+          ],
+          filming: [
+            "팁: 전신(발~스윙 팔)이 프레임에 들어오게 찍으면 점수 안정성이 올라가요.",
+            "팁: 측면 촬영 + 밝은 조명 조합이 인식이 제일 안정적이에요."
+          ]
+        },
+        speedLine: {
+          vfast: ["속도도 아주 빠릅니다. 한 방이 있네요 🔥", "와… 스매시가 진짜 빠르다!"],
+          fast: ["속도 좋습니다. 힘 전달이 잘 되고 있어요.", "좋은 속도! 타점만 더 위로 가면 더 쎄질 듯."],
+          mid: ["속도는 무난해요. 자세 연결을 다듬으면 바로 올라가요.", "지금은 ‘연결’이 포인트!"],
+          slow: ["속도는 아직 여유가 있어요. 하체-상체 연결로 올려봅시다.", "힘을 더 뽑아낼 수 있어요!"]
+        }
+      },
+
+      en: {
+        praise10: [
+          "Wait… are you a player? That form is CLEAN 😳",
+          "This looks pro-level. Great timing and flow.",
+          "That’s an ace-level smash. Seriously."
+        ],
+        high: [
+          "Nice! Your impact looks stable.",
+          "Solid form. A couple of tweaks and it’ll be even sharper.",
+          "Great flow from body to arm."
+        ],
+        mid: [
+          "Good! You’re close—fix a couple of things and it jumps up.",
+          "Not bad. Add a bit more stability and it improves fast.",
+          "Strong basics—next focus is timing + knees."
+        ],
+        low: [
+          "You’ve got potential. Follow the filming guide and it’ll improve quickly.",
+          "It’s okay—two small changes can make a big difference.",
+          "Some frames look unstable. Let’s tighten one point at a time."
+        ],
+        tips: {
+          elbow: [
+            "Tip: Keep your elbow around shoulder height to maintain power and control.",
+            "Tip: A low elbow leaks power—set the elbow first, then swing through."
+          ],
+          knee: [
+            "Tip: Slight knee bend (split-step feel) boosts both speed and stability.",
+            "Tip: If knees lock out, contact drops—keep a gentle bend."
+          ],
+          balance: [
+            "Tip: Stay on your front foot and keep your core engaged at impact.",
+            "Tip: Don’t stand tall at impact—lean slightly forward."
+          ],
+          filming: [
+            "Tip: Keep your full body in frame (feet → hitting arm) for stable scoring.",
+            "Tip: Side view + bright lighting gives the best tracking."
+          ]
+        },
+        speedLine: {
+          vfast: ["That smash speed is blazing 🔥", "Super fast smash—nice!"],
+          fast: ["Great speed. Power transfer looks good.", "Nice speed—raise contact a bit for more bite."],
+          mid: ["Speed is okay. Clean body-to-arm connection will boost it quickly.", "Focus on connection and timing."],
+          slow: ["Speed has room to grow—use legs + core to drive the swing.", "You can extract more power!"]
+        }
+      },
+
+      zh: {
+        praise10: [
+          "等等…你是选手吗？动作太干净了 😳",
+          "这状态像职业！节奏和发力都很好。",
+          "这扣杀太强了，像高手。"
+        ],
+        high: [
+          "很好！击球很稳定。",
+          "动作很扎实，再微调就更锋利。",
+          "上下肢衔接很顺。"
+        ],
+        mid: [
+          "不错！再调整两点分数就会明显提高。",
+          "还可以，稳定性再提升一点会更好。",
+          "基础不错，下一步看‘时机’和‘膝盖’。"
+        ],
+        low: [
+          "有潜力！按拍摄提示来，动作/识别都会更稳。",
+          "没关系，两处小改动就能提升很多。",
+          "有些帧不太稳定，我们一步步修正。"
+        ],
+        tips: {
+          elbow: [
+            "建议：肘部尽量接近肩高，发力更集中更稳定。",
+            "建议：肘太低会泄力，先立肘再挥拍。"
+          ],
+          knee: [
+            "建议：膝盖微屈（像分腿垫步），速度和稳定都会更好。",
+            "建议：膝盖锁死会让击球点变低，保持轻微弯曲。"
+          ],
+          balance: [
+            "建议：击球时重心别往后，核心收紧，压在前脚。",
+            "建议：击球瞬间别站太直，身体略向前更有力。"
+          ],
+          filming: [
+            "建议：全身入镜（脚→挥拍手）评分会更稳定。",
+            "建议：侧面+光线充足，识别最稳定。"
+          ]
+        },
+        speedLine: {
+          vfast: ["扣杀速度非常快🔥", "速度爆炸，太猛了！"],
+          fast: ["速度很好，发力传导不错。", "速度不错，击球点再高一点更凶。"],
+          mid: ["速度中等，衔接顺了会很快提升。", "先抓衔接和时机。"],
+          slow: ["速度还有空间，用腿和核心带动会更强。", "还能更有力！"]
+        }
+      }
+    };
+
+    const L = libs[currentLang] || libs.ko;
+
+    // 베이스 문장
+    let head;
+    if (score >= 9.8) head = pick(L.praise10);
+    else if (score >= 7.8) head = pick(L.high);
+    else if (score >= 5.0) head = pick(L.mid);
+    else head = pick(L.low);
+
+    // 팁 랜덤(상황별)
+    // 점수가 낮을수록 filming/기본 팁 비율 ↑
+    const tipPool = [];
+    if (score < 6.5) tipPool.push(...L.tips.filming);
+    tipPool.push(...L.tips.elbow, ...L.tips.knee, ...L.tips.balance);
+
+    const tip = pick(tipPool);
+    const speedLine = pick(L.speedLine[speedTier] || L.speedLine.mid);
+
+    // 최종 문자열 (언어별)
+    if (currentLang === "ko"){
+      return `${head} 최고 ${i18n.ko.speed}는 ${Math.round(speed)}km/h예요. ${speedLine} ${tip}`;
+    }
+    if (currentLang === "zh"){
+      return `${head} 最高${i18n.zh.speed}：${Math.round(speed)} km/h。${speedLine} ${tip}`;
+    }
+    return `${head} Peak ${i18n.en.speed}: ${Math.round(speed)} km/h. ${speedLine} ${tip}`;
+  }
+
+  // Prepare / Load video
+  async function startAnalysis(){
+    const t = i18n[currentLang];
+    const file = $("videoUpload").files[0];
+    if (!file){ alert(t.alerts.upload); setStatus("err", t.status_nofile); return; }
+    if (file.size > 100 * 1024 * 1024){ alert(t.alerts.max); return; }
+
+    prepared = false;
+    isAnalyzing = false;
+    lastVideoTime = -1;
+    scoreSamples = [];
+    lastWrist3d = null;
+    lastTimeSec = null;
+    maxSpeedKmh = 0;
+    finalPoseFrameUrl = null;
+
+    $("results").style.display = "none";
+    playOverlay.classList.remove("hidden");
+
+    setHUD(t.hud_wait);
+    setStatus("live", t.status_analyzing);
+    setLoading(true);
+
+    safeGtag("event","analysis_start_click",{ lang: currentLang });
+
+    if (!poseLandmarker){
+      const ok = await initPoseLandmarker();
+      if (!ok){ setLoading(false); return; }
+    }
+
+    const src = URL.createObjectURL(file);
+    videoEl.src = src;
+    videoEl.load();
+
+    videoEl.onloadedmetadata = () => {
+      canvasEl.width = videoEl.videoWidth;
+      canvasEl.height = videoEl.videoHeight;
+
+      prepared = true;
+      setLoading(false);
+      setStatus("live", t.status_ready);
+      setHUD(t.hud_ready);
+
+      resetBtn.disabled = false;
+      safeGtag("event","analysis_ready",{ lang: currentLang });
+    };
+  }
+
+  async function startPlayback(){
+    const t = i18n[currentLang];
+    if (!prepared) return;
+
+    try{
+      await videoEl.play();
+      playOverlay.classList.add("hidden");
+
+      isAnalyzing = true;
+      setStatus("live", t.status_analyzing);
+      setHUD(t.hud_analyzing);
+      setLoading(true);
+
+      safeGtag("event","video_play",{ lang: currentLang });
+      requestAnimationFrame(analyzeLoop);
+    }catch(e){
+      console.error(e);
+      alert(t.alerts.playfail);
+    }
+  }
+
+  async function analyzeLoop(){
+    if (!isAnalyzing || !poseLandmarker) return;
+
+    const nowInMs = performance.now();
+    if (videoEl.currentTime === lastVideoTime){
+      requestAnimationFrame(analyzeLoop);
+      return;
+    }
+    lastVideoTime = videoEl.currentTime;
+
+    ctx.save();
+    ctx.clearRect(0,0,canvasEl.width, canvasEl.height);
+    ctx.drawImage(videoEl, 0,0, canvasEl.width, canvasEl.height);
+
+    try{
+      const results = await poseLandmarker.detectForVideo(videoEl, nowInMs);
+      if (results.landmarks && results.landmarks.length > 0){
+        const lm = results.landmarks[0];
+
+        drawingUtils.drawLandmarks(lm, { color:"#ff4d4d", radius:4 });
+        drawingUtils.drawConnectors(lm, PoseLandmarker.POSE_CONNECTIONS, { color:"#22c55e", lineWidth:2 });
+
+        scoreSamples.push(calculateScoreStrict(lm));
+        sampleWristSpeedFromWorld(results);
+      }
+    }catch(e){
+      console.error("Detection failed:", e);
+    }
+
+    ctx.restore();
+    requestAnimationFrame(analyzeLoop);
+  }
+
+  function finishAnalysis(){
+    const t = i18n[currentLang];
+
+    isAnalyzing = false;
+    setLoading(false);
+
+    finalScore = computeFinalScore();         // ✅ 소수점 1자리
+    finalSpeed = maxSpeedKmh || 0;
+    finalPoseFrameUrl = canvasEl.toDataURL("image/png");
+
+    const feedback = buildFeedback(finalScore, finalSpeed);
+    renderResults(finalScore, finalSpeed, feedback, finalPoseFrameUrl);
+
+    $("results").style.display = "block";
+    setStatus("live", t.status_done);
+    setHUD(t.hud_done);
+
+    $("results").scrollIntoView({ behavior:"smooth", block:"start" });
+    safeGtag("event","analysis_complete",{ score: finalScore, speed: Math.round(finalSpeed), lang: currentLang });
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, (m) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+    }[m]));
+  }
+
+  function renderRankTable(top20, me){
+    const t = i18n[currentLang];
+    const rows = (top20 || []).map((r, idx) => {
+      const isMe = me && r && me.id && r.id === me.id;
+      return `
+        <tr class="${isMe ? "rankRowMe" : ""}">
+          <td>${idx+1}</td>
+          <td>${escapeHtml(r.nick)}</td>
+          <td>${Number(r.score).toFixed(1)}</td>
+          <td>${Math.round(r.speed)}</td>
+        </tr>
+      `;
+    }).join("");
+
+    const meLine = me
+      ? `<div style="margin-top:10px;"><b>${t.my_rank}:</b> #${me.rank} / ${escapeHtml(me.nick)} / ${Number(me.score).toFixed(1)} / ${Math.round(me.speed)}km/h</div>`
+      : "";
+
+    return `
+      <div class="rankBox">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div style="font-weight:950;">${t.rank_title}</div>
+          <div style="color:rgba(255,255,255,0.55); font-size:12px;">${getLocalDateKey()}</div>
+        </div>
+
+        ${meLine}
+
+        <table class="rankTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nick</th>
+              <th>Score</th>
+              <th>km/h</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || `<tr><td colspan="4" style="color:rgba(255,255,255,0.55); padding:12px 6px;">No data yet</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  async function submitRanking(nick, score, speed){
+    const dateKey = getLocalDateKey();
+    const url =
+      `${RANK_API}?action=submit` +
+      `&date=${encodeURIComponent(dateKey)}` +
+      `&nick=${encodeURIComponent(nick)}` +
+      `&score=${encodeURIComponent(score)}` +
+      `&speed=${encodeURIComponent(Math.round(speed))}` +
+      `&t=${Date.now()}`;
+    return await jsonp(url);
+  }
+
+  async function fetchTop(nick){
+    const dateKey = getLocalDateKey();
+    const url =
+      `${RANK_API}?action=top` +
+      `&date=${encodeURIComponent(dateKey)}` +
+      `&nick=${encodeURIComponent(nick || "")}` +
+      `&t=${Date.now()}`;
+    return await jsonp(url);
+  }
+
+  function renderResults(score, speed, feedback, poseFrameUrl){
+    const t = i18n[currentLang];
+    const savedNick = localStorage.getItem("badmi_nick") || "";
+
+    $("resultsInner").innerHTML = `
+      <div class="sectionTitle">${t.result_title}</div>
+
+      <div class="frameThumb" style="margin-top:10px;">
+        <img src="${poseFrameUrl}" alt="pose frame" />
+      </div>
+
+      <div class="resultGrid">
+        <div class="metric">
+          <div class="label">${t.score}</div>
+          <div class="value">${Number(score).toFixed(1)}<span class="unit"> / 10</span></div>
+        </div>
+        <div class="metric">
+          <div class="label">${t.speed}</div>
+          <div class="value">${Math.round(speed)}<span class="unit"> km/h</span></div>
+        </div>
+      </div>
+
+      <div class="feedbackBox">
+        <b>${t.feedback_label}:</b><br/>
+        ${escapeHtml(feedback)}
+      </div>
+
+      <div style="margin-top:10px;">
+        <button class="action btn-ghost" id="downloadStoryButton" style="width:100%;">${t.save_story}</button>
+      </div>
+
+      <div class="row">
+        <input class="nick" id="nickInput" maxlength="16" placeholder="${escapeHtml(t.nick_ph)}" value="${escapeHtml(savedNick)}" />
+        <button class="action btn-primary" id="submitRankButton" style="padding:12px 14px;">🏆 ${t.submit_rank}</button>
+      </div>
+
+      <div id="rankArea"></div>
+    `;
+
+    $("downloadStoryButton").addEventListener("click", async () => {
+      await downloadStoryImage({ poseFrameUrl, score, speed, feedback });
+    });
+
+    // 랭킹 조회 (닉 있으면 내순위도 같이 보여줌)
+    (async ()=>{
+      try{
+        const data = await fetchTop(savedNick);
+        $("rankArea").innerHTML = renderRankTable(data.top20, data.me);
+      }catch(e){
+        // silent
+      }
+    })();
+
+    $("submitRankButton").addEventListener("click", async () => {
+      const nick = $("nickInput").value.trim();
+      if (!nick){ alert(t.alerts.nick); return; }
+      localStorage.setItem("badmi_nick", nick);
+
+      try{
+        $("submitRankButton").disabled = true;
+        $("submitRankButton").textContent = "⏳ ...";
+        const data = await submitRanking(nick, score, speed);
+        $("rankArea").innerHTML = renderRankTable(data.top20, data.me);
+
+        safeGtag("event","rank_submit",{ nick_len: nick.length, score, speed: Math.round(speed), lang: currentLang });
+      }catch(e){
+        console.error(e);
+        alert(t.alerts.rank_fail);
+      }finally{
+        $("submitRankButton").disabled = false;
+        $("submitRankButton").innerHTML = `🏆 ${t.submit_rank}`;
+      }
+    });
+  }
+
+  // Story image generator (1080x1920)
+  async function downloadStoryImage({ poseFrameUrl, score, speed, feedback }){
+    const t = i18n[currentLang];
+    const W = 1080, H = 1920;
+    const out = document.createElement("canvas");
+    out.width = W; out.height = H;
+    const c = out.getContext("2d");
+
+    // bg
+    const g = c.createLinearGradient(0,0,W,H);
+    g.addColorStop(0, "#0b1020");
+    g.addColorStop(1, "#1b1450");
+    c.fillStyle = g;
+    c.fillRect(0,0,W,H);
+
+    // title
+    c.fillStyle = "rgba(255,255,255,0.92)";
+    c.font = "900 54px system-ui, -apple-system, Segoe UI, Roboto";
+    c.fillText(
+      currentLang === "ko" ? "🏸 스매싱 분석 결과" :
+      currentLang === "zh" ? "🏸 扣杀分析结果" :
+      "🏸 Smash Analysis",
+      70, 140
+    );
+
+    // frame
+    const img = await loadImage(poseFrameUrl);
+    const cardX = 70, cardY = 210, cardW = 940, cardH = 1040;
+
+    c.save();
+    roundRectPath(c, cardX, cardY, cardW, cardH, 36);
+    c.clip();
+    const crop = coverCrop(img.width, img.height, cardW, cardH);
+    c.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, cardX, cardY, cardW, cardH);
+    c.restore();
+
+    // pills
+    drawPill(c, 70, 1320, 450, 150,
+      currentLang === "ko" ? `자세 점수  ${Number(score).toFixed(1)}/10` :
+      currentLang === "zh" ? `动作评分  ${Number(score).toFixed(1)}/10` :
+      `Score  ${Number(score).toFixed(1)}/10`
+    );
+    drawPill(c, 560, 1320, 450, 150,
+      currentLang === "ko" ? `스매싱 속도  ${Math.round(speed)} km/h` :
+      currentLang === "zh" ? `扣杀速度  ${Math.round(speed)} km/h` :
+      `Smash Speed  ${Math.round(speed)} km/h`
+    );
+
+    // feedback
+    c.fillStyle = "rgba(255,255,255,0.86)";
+    c.font = "700 34px system-ui, -apple-system, Segoe UI, Roboto";
+    wrapText(c, feedback, 70, 1530, 940, 44, 6);
+
+    // footer
+    c.fillStyle = "rgba(255,255,255,0.45)";
+    c.font = "700 26px system-ui, -apple-system, Segoe UI, Roboto";
+    c.fillText("Made with badmi", 70, 1860);
+
+    const link = document.createElement("a");
+    link.download = "smash_story.png";
+    link.href = out.toDataURL("image/png");
+    link.click();
+
+    safeGtag("event","download_story_image",{ score, speed: Math.round(speed), lang: currentLang });
+
+    setTimeout(() => {
+      alert(`${t.save_done_title}\n\n${t.save_done_body}`);
+    }, 50);
+  }
+
+  function loadImage(src){
+    return new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = src;
+    });
+  }
+  function coverCrop(iw, ih, tw, th){
+    const ir = iw/ih, tr = tw/th;
+    let sw, sh, sx, sy;
+    if (ir > tr){
+      sh = ih;
+      sw = ih * tr;
+      sx = (iw - sw)/2;
+      sy = 0;
+    } else {
+      sw = iw;
+      sh = iw / tr;
+      sx = 0;
+      sy = (ih - sh)/2;
+    }
+    return { sx, sy, sw, sh };
+  }
+  function roundRectPath(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
+  }
+  function drawPill(ctx, x, y, w, h, text){
+    ctx.save();
+    roundRectPath(ctx, x, y, w, h, 30);
+    ctx.fillStyle = "rgba(255,255,255,0.12)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    ctx.font = "900 36px system-ui, -apple-system, Segoe UI, Roboto";
+    ctx.fillText(text, x+26, y+92);
+    ctx.restore();
+  }
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines){
+    const words = String(text).split(" ");
+    let line = "";
+    let lines = 0;
+
+    for (let n=0; n<words.length; n++){
+      const test = line + words[n] + " ";
+      if (ctx.measureText(test).width > maxWidth && n>0){
+        ctx.fillText(line.trim(), x, y + lines*lineHeight);
+        line = words[n] + " ";
+        lines++;
+        if (lines >= maxLines) break;
+      } else {
+        line = test;
+      }
+    }
+    if (lines < maxLines) ctx.fillText(line.trim(), x, y + lines*lineHeight);
+  }
+
+  // Events
+  $("videoUpload").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file && file.size > 100 * 1024 * 1024){
+      alert(i18n[currentLang].alerts.max);
+      e.target.value = "";
+      return;
+    }
+    safeGtag("event","video_upload",{ lang: currentLang });
+  });
+
+  startBtn.addEventListener("click", startAnalysis);
+  resetBtn.addEventListener("click", () => {
+    isAnalyzing = false;
+    prepared = false;
+    scoreSamples = [];
+    maxSpeedKmh = 0;
+    lastWrist3d = null;
+    lastTimeSec = null;
+    finalPoseFrameUrl = null;
+
+    ctx.clearRect(0,0,canvasEl.width, canvasEl.height);
+    videoEl.pause();
+    videoEl.src = "";
+
+    $("videoUpload").value = "";
+    $("results").style.display = "none";
+    playOverlay.classList.remove("hidden");
+    resetBtn.disabled = true;
+
+    const t = i18n[currentLang];
+    setHUD(t.hud_wait);
+    setStatus("", t.status_idle);
+    setLoading(false);
+
+    safeGtag("event","reset",{ lang: currentLang });
+  });
+
+  playOverlay.addEventListener("click", startPlayback);
+
+  videoEl.addEventListener("ended", () => {
+    if (prepared) finishAnalysis();
+    playOverlay.classList.remove("hidden");
+  });
+
+  videoEl.addEventListener("pause", () => {
+    playOverlay.classList.remove("hidden");
+  });
+
+  // Init UI
+  setLang("ko");
+  setLoading(false);
+  resetBtn.disabled = true;
+</script>
+</body>
+</html>
