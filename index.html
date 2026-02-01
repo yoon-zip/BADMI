@@ -1032,47 +1032,71 @@
     return Math.acos(cos) * 180 / Math.PI;
   }
 
-  // ✅ 10점 만점 (짜게)
   function calculateScoreStrict(landmarks){
     let s = 10;
-
-    const shoulderR = landmarks[12] || {x:0,y:0};
-    const elbowR    = landmarks[14] || {x:0,y:0};
-    const wristR    = landmarks[16] || {x:0,y:0};
-
-    const hipL   = landmarks[23] || {x:0,y:0};
-    const kneeL  = landmarks[25] || {x:0,y:0};
-    const ankleL = landmarks[27] || {x:0,y:0};
-
-    const hipR   = landmarks[24] || {x:0,y:0};
-    const kneeR  = landmarks[26] || {x:0,y:0};
-    const ankleR = landmarks[28] || {x:0,y:0};
-
-    // 1) 팔꿈치 낮음
-    if (elbowR.y > shoulderR.y + 0.06) s -= 3.5;
-    if (elbowR.y > shoulderR.y + 0.12) s -= 1.0;
-
-    // 2) 손목 떨어짐(스윙 약함)
-    const wristDrop = wristR.y - elbowR.y;
-    if (wristDrop > 0.12) s -= 1.0;
-
-    // 3) 무릎 각도
-    const legAngleL = calculateAngle(hipL, kneeL, ankleL);
-    const legAngleR = calculateAngle(hipR, kneeR, ankleR);
-    const legAngle = (legAngleL && legAngleR) ? (legAngleL+legAngleR)/2 : (legAngleL || legAngleR || 0);
-
-    if (legAngle > 168) s -= 3.0;
-    else if (legAngle > 160) s -= 2.0;
-    else if (legAngle > 150) s -= 1.0;
-
-    // 4) 좌우 비대칭
-    if (legAngleL && legAngleR && Math.abs(legAngleL - legAngleR) > 18) s -= 1.0;
-
-    // 5) 전체 스케일 살짝 다운
-    s = s - 0.6;
-
+  
+    const shoulderR = landmarks[12];
+    const elbowR    = landmarks[14];
+    const wristR    = landmarks[16];
+  
+    const hipL   = landmarks[23];
+    const kneeL  = landmarks[25];
+    const ankleL = landmarks[27];
+  
+    const hipR   = landmarks[24];
+    const kneeR  = landmarks[26];
+    const ankleR = landmarks[28];
+  
+    // 랜드마크 부족하면 짜게: 바로 감점
+    if (!shoulderR || !elbowR || !wristR) s -= 2.0;
+    if (!hipL || !kneeL || !ankleL || !hipR || !kneeR || !ankleR) s -= 2.0;
+  
+    // 1) 팔꿈치 낮음 (구간별, 더 나쁠수록 더 크게)
+    if (shoulderR && elbowR){
+      if (elbowR.y > shoulderR.y + 0.12) s -= 4.5;
+      else if (elbowR.y > shoulderR.y + 0.06) s -= 2.5;
+    }
+  
+    // 2) 손목 떨어짐(스윙 약함) - 기준을 더 빡세게
+    if (wristR && elbowR){
+      const wristDrop = wristR.y - elbowR.y;
+      if (wristDrop > 0.10) s -= 1.2;
+      if (wristDrop > 0.14) s -= 1.0; // 추가 감점(진짜 떨어진 경우)
+    }
+  
+    // 3) 무릎 각도 (더 빡세게)
+    const legAngleL = (hipL && kneeL && ankleL) ? calculateAngle(hipL, kneeL, ankleL) : null;
+    const legAngleR = (hipR && kneeR && ankleR) ? calculateAngle(hipR, kneeR, ankleR) : null;
+    const legAngle =
+      (legAngleL != null && legAngleR != null) ? (legAngleL + legAngleR)/2 :
+      (legAngleL ?? legAngleR);
+  
+    if (legAngle != null){
+      if (legAngle > 168) s -= 3.5;
+      else if (legAngle > 160) s -= 2.5;
+      else if (legAngle > 150) s -= 1.5;
+      else if (legAngle > 145) s -= 0.8; // “애매한 굽힘”도 감점
+    } else {
+      // 각도 계산 못하면 짜게
+      s -= 1.5;
+    }
+  
+    // 4) 좌우 비대칭 (기준을 더 민감하게)
+    if (legAngleL != null && legAngleR != null){
+      const diff = Math.abs(legAngleL - legAngleR);
+      if (diff > 12) s -= 1.2;
+      if (diff > 18) s -= 0.8; // 추가 감점
+    }
+  
+    // 5) 전체 스케일 다운을 "곡선"으로: 상위 점수 더 깎기 (체감 짜짐)
+    s = Math.pow(clamp(s, 0, 10) / 10, 1.25) * 10;  // 1.15~1.4로 조절
+  
+    // + 고정 감점은 유지하되 조금만
+    s -= 0.4;
+  
     return clamp(s, 0, 10);
   }
+
 
   function computeFinalScore(){
     if (scoreSamples.length === 0) return 0;
