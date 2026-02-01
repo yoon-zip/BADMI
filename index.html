@@ -475,15 +475,12 @@
 <script type="module">
   import { PoseLandmarker, FilesetResolver, DrawingUtils } from "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.0";
 
-  /************ 랭킹 서버 URL(이거만 교체!) ************/
-  // 반드시 /exec 로 끝나는 웹앱 URL
-  const RANK_API = "https://script.google.com/macros/s/AKfycbz__tFJATuiz_KncHRlpcPebDITnlsqXLtacYG9bFJSf7xrvf87aXxvvZE2ehzJf54s6w/exec";
+  /************ ✅ 랭킹 서버 URL(이거만 교체!) ************/
+  // 반드시 /exec 로 끝나는 "웹앱 URL" 전체를 그대로 넣기
+  const RANK_API = "https://script.google.com/macros/s/AKfycbwhl5tOdASLjfB_QBB4e_HLefP5k019VaarxZQm5vGOfg7QVWmVMkp_laY9gvSh4uM8Ag/exec";
 
-  // Helpers
   const $ = (id) => document.getElementById(id);
-  function safeGtag(...args){
-    try{ if (typeof gtag === "function") gtag(...args); }catch(e){}
-  }
+  function safeGtag(...args){ try{ if (typeof gtag === "function") gtag(...args); }catch(e){} }
   function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
   function round1(n){ return Math.round(n * 10) / 10; }
 
@@ -495,7 +492,7 @@
     return `${y}-${m}-${dd}`;
   }
 
-  // JSONP request (Apps Script용)
+  // JSONP
   function jsonp(url, timeoutMs = 9000){
     return new Promise((resolve, reject) => {
       const cbName = "__cb_" + Math.random().toString(36).slice(2);
@@ -537,23 +534,44 @@
     });
   }
 
-  async function fetchTop(nick){
+  // ✅ GAS에 맞게: nick + insta를 각각 보냄
+  async function fetchTop(name, insta){
     const date = todayStr();
-    const url = `${RANK_API}?action=top&date=${encodeURIComponent(date)}&nick=${encodeURIComponent(nick||"")}`;
+    const url =
+      `${RANK_API}?action=top` +
+      `&date=${encodeURIComponent(date)}` +
+      `&nick=${encodeURIComponent(name||"")}` +
+      `&insta=${encodeURIComponent(insta||"")}`;
     return await jsonp(url);
   }
 
-  async function submitRanking(nick, score, speed){
+  // ✅ GAS에 맞게: nick + insta를 각각 보냄
+  async function submitRanking(name, insta, score, speed){
     const date = todayStr();
-    const url = `${RANK_API}?action=submit&date=${encodeURIComponent(date)}&nick=${encodeURIComponent(nick)}&score=${encodeURIComponent(score)}&speed=${encodeURIComponent(speed)}`;
+    const url =
+      `${RANK_API}?action=submit` +
+      `&date=${encodeURIComponent(date)}` +
+      `&nick=${encodeURIComponent(name)}` +
+      `&insta=${encodeURIComponent(insta)}` +
+      `&score=${encodeURIComponent(score)}` +
+      `&speed=${encodeURIComponent(speed)}`;
     return await jsonp(url);
+  }
+
+  function escapeHtml(s){
+    return String(s||"")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
   }
 
   function renderRankTable(top20, me){
     const rows = (top20 || []).map(r => `
       <tr class="${me && me.rank === r.rank ? "meRow" : ""}">
         <td>#${r.rank}</td>
-        <td>${escapeHtml(r.nick)}</td>
+        <td>${escapeHtml(r.nick)} ${escapeHtml(r.insta)}</td>
         <td>${round1(r.score).toFixed(1)}</td>
         <td>${Math.round(r.speed)}</td>
       </tr>
@@ -583,21 +601,12 @@
           <tbody>${rows || `<tr><td colspan="4">아직 등록된 기록이 없어요!</td></tr>`}</tbody>
         </table>
         ${meRow}
-        <div class="rankHint">※ 중복 방지: “이름+인스타” 기준으로 하루 1회(더 좋은 기록이면 갱신)</div>
+        <div class="rankHint">※ 중복 방지: (이름+인스타) 기준으로 하루 1회(더 좋은 기록이면 갱신)</div>
       </div>
     `;
   }
 
-  function escapeHtml(s){
-    return String(s||"")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
-  }
-
-  // i18n
+  // i18n (네 원본 그대로)
   const i18n = {
     ko: {
       title: "🏸 배드민턴 스매싱 분석기",
@@ -651,7 +660,6 @@
         "iPhone: 파일 앱 > 다운로드에서 확인 → 공유 버튼 → 사진에 저장(또는 인스타로 공유)\n" +
         "Android: 다운로드(Downloads) 폴더에서 확인 → 갤러리에 표시됨(기기별 상이)"
     },
-
     en: {
       title: "🏸 Badminton Smash Analyzer",
       sub: "Vertical filming recommended (tap Filming Tips below)",
@@ -704,7 +712,6 @@
         "iPhone: Files app > Downloads → Share → Save Image (or share to Instagram)\n" +
         "Android: Check Downloads folder → it may appear in Gallery (varies by device)"
     },
-
     zh: {
       title: "🏸 羽毛球扣杀分析器",
       sub: "建议竖屏拍摄（点击下方拍摄提示）",
@@ -880,7 +887,7 @@
     return Math.acos(cos) * 180 / Math.PI;
   }
 
-  // 점수: 좀 더 "짜게" 나오게(기본 10 → 감점 폭 증가)
+  // 점수: 짜게
   function calculateScoreStrict(landmarks){
     let s = 10;
 
@@ -896,15 +903,12 @@
     const kneeR  = landmarks[26] || {x:0,y:0};
     const ankleR = landmarks[28] || {x:0,y:0};
 
-    // 1) 팔꿈치가 어깨보다 낮으면 감점(더 세게)
     if (elbowR.y > shoulderR.y + 0.06) s -= 3.5;
     if (elbowR.y > shoulderR.y + 0.12) s -= 1.0;
 
-    // 2) 손목이 너무 떨어져 있으면(임팩트/스윙이 약함) 감점
     const wristDrop = wristR.y - elbowR.y;
     if (wristDrop > 0.12) s -= 1.0;
 
-    // 3) 무릎 각도: 너무 펴져있으면 감점
     const legAngleL = calculateAngle(hipL, kneeL, ankleL);
     const legAngleR = calculateAngle(hipR, kneeR, ankleR);
     const legAngle = (legAngleL && legAngleR) ? (legAngleL+legAngleR)/2 : (legAngleL || legAngleR || 0);
@@ -913,18 +917,14 @@
     else if (legAngle > 160) s -= 2.0;
     else if (legAngle > 150) s -= 1.0;
 
-    // 4) 좌우 무릎 비대칭(밸런스) 감점
     if (legAngleL && legAngleR && Math.abs(legAngleL - legAngleR) > 18) s -= 1.0;
 
-    // 5) 결과를 더 짜게: 전체 스케일 약간 다운(10점이 나오기 어렵게)
     s = s - 0.6;
-
     return clamp(s, 0, 10);
   }
 
   function computeFinalScore(){
     if (scoreSamples.length === 0) return 0;
-    // 상위 25% 평균(좋은 순간 위주) + 소수점 1자리
     const sorted = [...scoreSamples].sort((a,b)=>b-a);
     const topCount = Math.max(6, Math.floor(sorted.length * 0.25));
     const top = sorted.slice(0, topCount);
@@ -953,7 +953,7 @@
     lastTimeSec = t;
   }
 
-  // 피드백 다양화(점수 구간 + 랜덤 + 팁 다양)
+  // 피드백 다양화
   function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
   function getFeedback(score, speed){
@@ -982,12 +982,8 @@
       ]
     };
 
-    let opener = "";
-    let body = "";
-    let tip = "";
-
-    // KO
     if (currentLang === "ko"){
+      let opener = "", body = "", tip = "";
       if (s >= 9.5){
         opener = "혹시… 선수신가요? 😳";
         body = pick([
@@ -1029,13 +1025,10 @@
         ]);
         tip = pick([tips.balance[0], tips.knee[1], tips.elbow[2]]);
       }
-
       return `${opener} ${body} 최고 ${i18n[currentLang].speed}는 ${Math.round(speed)}km/h예요. ${tip}`;
     }
 
-    // ZH
     if (currentLang === "zh"){
-      // 간단하지만 다양하게
       const zhOpen = s >= 9.5 ? "你是选手吗？😳" :
                      s >= 8.0 ? "很强！快到高手了。" :
                      s >= 6.5 ? "不错！再打磨一下就更稳。" :
@@ -1054,7 +1047,6 @@
       return `${zhOpen} ${zhBody} 最高${i18n[currentLang].speed}：${Math.round(speed)} km/h。${zhTip}`;
     }
 
-    // EN
     const enOpen = s >= 9.5 ? "Wait… are you a pro? 😳" :
                    s >= 8.0 ? "Strong! You’re almost there." :
                    s >= 6.5 ? "Good! Easy improvements available." :
@@ -1073,14 +1065,12 @@
     return `${enOpen} ${enBody} Peak ${i18n[currentLang].speed}: ${Math.round(speed)} km/h. ${enTip}`;
   }
 
-  // Prepare / Load video
   async function startAnalysis(){
     const t = i18n[currentLang];
     const file = $("videoUpload").files[0];
     if (!file){ alert(t.alerts.upload); setStatus("err", t.status_nofile); return; }
     if (file.size > 100 * 1024 * 1024){ alert(t.alerts.max); return; }
 
-    // reset session
     prepared = false;
     isAnalyzing = false;
     lastVideoTime = -1;
@@ -1104,7 +1094,6 @@
       if (!ok){ setLoading(false); return; }
     }
 
-    // load video
     const src = URL.createObjectURL(file);
     videoEl.src = src;
     videoEl.load();
@@ -1123,7 +1112,6 @@
     };
   }
 
-  // Play + analyze loop
   async function startPlayback(){
     const t = i18n[currentLang];
     if (!prepared) return;
@@ -1184,7 +1172,7 @@
     isAnalyzing = false;
     setLoading(false);
 
-    finalScore = computeFinalScore();          // ✅ 소수점 1자리
+    finalScore = computeFinalScore(); // 소수점 1자리
     finalSpeed = maxSpeedKmh || 0;
     finalPoseFrameUrl = canvasEl.toDataURL("image/png");
 
@@ -1228,10 +1216,6 @@
         ${escapeHtml(feedback).replaceAll("\n","<br/>")}
       </div>
 
-      <div style="margin-top:10px;">
-        <button class="action btn-ghost" id="downloadStoryButton" style="width:100%;">${t.save_story}</button>
-      </div>
-
       <div class="row" style="flex-direction:column; align-items:stretch;">
         <input class="nick" id="nameInput" maxlength="10" placeholder="${currentLang==="ko" ? "이름 (예: 윤서)" : currentLang==="zh" ? "姓名（例：Yoon）" : "Name (e.g., Yoon)"}" value="${escapeHtml(savedName)}" />
         <input class="nick" id="instaInput" maxlength="20" placeholder="${currentLang==="ko" ? "인스타 아이디 (예: @yoondminton)" : currentLang==="zh" ? "Instagram（例：@yoondminton）" : "Instagram (e.g., @yoondminton)"}" value="${escapeHtml(savedInsta)}" />
@@ -1243,15 +1227,10 @@
       </div>
     `;
 
-    $("downloadStoryButton").addEventListener("click", async () => {
-      await downloadStoryImage({ poseFrameUrl, score, speed, feedback });
-    });
-
-    // 초기 랭킹 조회 (저장된 이름+인스타 기준으로 "내 순위"도 함께)
-    const savedNick2 = (savedName && savedInsta) ? `${savedName} ${savedInsta}` : "";
+    // ✅ 초기 랭킹 조회 (저장된 이름+인스타 기준)
     (async ()=>{
       try{
-        const data = await fetchTop(savedNick2);
+        const data = await fetchTop(savedName, savedInsta);
         $("rankArea").innerHTML = renderRankTable(data.top20, data.me);
       }catch(e){
         $("rankArea").innerHTML = `<div class="rankBox">${i18n[currentLang].alerts.rank_fail}</div>`;
@@ -1267,8 +1246,6 @@
       if (!insta){ alert(currentLang==="ko" ? "인스타 아이디를 입력해줘!" : currentLang==="zh" ? "请输入 Instagram！" : "Please enter your Instagram!"); return; }
       if (!insta.startsWith("@")) insta = "@" + insta;
 
-      const nick = `${name} ${insta}`;
-
       localStorage.setItem("badmi_name", name);
       localStorage.setItem("badmi_insta", insta);
 
@@ -1276,7 +1253,7 @@
         $("submitRankButton").disabled = true;
         $("submitRankButton").textContent = "⏳ ...";
 
-        const data = await submitRanking(nick, round1(score), Math.round(speed));
+        const data = await submitRanking(name, insta, round1(score).toFixed(1), Math.round(speed));
         $("rankArea").innerHTML = renderRankTable(data.top20, data.me);
 
         safeGtag("event","rank_submit",{ lang: currentLang, score: round1(score), speed: Math.round(speed) });
@@ -1288,142 +1265,6 @@
         $("submitRankButton").innerHTML = `🏆 ${i18n[currentLang].submit_rank}`;
       }
     });
-  }
-
-  // Story image generator (1080x1920)
-  async function downloadStoryImage({ poseFrameUrl, score, speed, feedback }){
-    const t = i18n[currentLang];
-    const W = 1080, H = 1920;
-    const out = document.createElement("canvas");
-    out.width = W; out.height = H;
-    const c = out.getContext("2d");
-
-    // bg
-    const g = c.createLinearGradient(0,0,W,H);
-    g.addColorStop(0, "#0b1020");
-    g.addColorStop(1, "#1b1450");
-    c.fillStyle = g;
-    c.fillRect(0,0,W,H);
-
-    // title
-    c.fillStyle = "rgba(255,255,255,0.92)";
-    c.font = "900 54px system-ui, -apple-system, Segoe UI, Roboto";
-    c.fillText(
-      currentLang === "ko" ? "🏸 스매싱 분석 결과" :
-      currentLang === "zh" ? "🏸 扣杀分析结果" :
-      "🏸 Smash Analysis",
-      70, 140
-    );
-
-    // frame
-    const img = await loadImage(poseFrameUrl);
-    const cardX = 70, cardY = 210, cardW = 940, cardH = 1040;
-
-    c.save();
-    roundRectPath(c, cardX, cardY, cardW, cardH, 36);
-    c.clip();
-    const crop = coverCrop(img.width, img.height, cardW, cardH);
-    c.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, cardX, cardY, cardW, cardH);
-    c.restore();
-
-    // pills
-    drawPill(c, 70, 1320, 450, 150,
-      currentLang === "ko" ? `자세 점수  ${round1(score).toFixed(1)}/10` :
-      currentLang === "zh" ? `动作评分  ${round1(score).toFixed(1)}/10` :
-      `Score  ${round1(score).toFixed(1)}/10`
-    );
-    drawPill(c, 560, 1320, 450, 150,
-      currentLang === "ko" ? `스매싱 속도  ${Math.round(speed)} km/h` :
-      currentLang === "zh" ? `扣杀速度  ${Math.round(speed)} km/h` :
-      `Smash speed  ${Math.round(speed)} km/h`
-    );
-
-    // feedback
-    c.fillStyle = "rgba(255,255,255,0.86)";
-    c.font = "700 34px system-ui, -apple-system, Segoe UI, Roboto";
-    wrapText(c, feedback, 70, 1530, 940, 44, 6);
-
-    // footer
-    c.fillStyle = "rgba(255,255,255,0.45)";
-    c.font = "700 26px system-ui, -apple-system, Segoe UI, Roboto";
-    c.fillText("Made with badmi", 70, 1860);
-
-    const link = document.createElement("a");
-    link.download = "smash_story.png";
-    link.href = out.toDataURL("image/png");
-    link.click();
-
-    safeGtag("event","download_story_image",{ score: round1(score), speed: Math.round(speed), lang: currentLang });
-
-    setTimeout(() => {
-      alert(`${t.save_done_title}\n\n${t.save_done_body}`);
-    }, 50);
-  }
-
-  function loadImage(src){
-    return new Promise((res, rej) => {
-      const i = new Image();
-      i.onload = () => res(i);
-      i.onerror = rej;
-      i.src = src;
-    });
-  }
-  function coverCrop(iw, ih, tw, th){
-    const ir = iw/ih, tr = tw/th;
-    let sw, sh, sx, sy;
-    if (ir > tr){
-      sh = ih;
-      sw = ih * tr;
-      sx = (iw - sw)/2;
-      sy = 0;
-    } else {
-      sw = iw;
-      sh = iw / tr;
-      sx = 0;
-      sy = (ih - sh)/2;
-    }
-    return { sx, sy, sw, sh };
-  }
-  function roundRectPath(ctx, x, y, w, h, r){
-    ctx.beginPath();
-    ctx.moveTo(x+r, y);
-    ctx.arcTo(x+w, y, x+w, y+h, r);
-    ctx.arcTo(x+w, y+h, x, y+h, r);
-    ctx.arcTo(x, y+h, x, y, r);
-    ctx.arcTo(x, y, x+w, y, r);
-    ctx.closePath();
-  }
-  function drawPill(ctx, x, y, w, h, text){
-    ctx.save();
-    roundRectPath(ctx, x, y, w, h, 30);
-    ctx.fillStyle = "rgba(255,255,255,0.12)";
-    ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.18)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
-    ctx.font = "900 36px system-ui, -apple-system, Segoe UI, Roboto";
-    ctx.fillText(text, x+26, y+92);
-    ctx.restore();
-  }
-  function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines){
-    const words = String(text).split(" ");
-    let line = "";
-    let lines = 0;
-
-    for (let n=0; n<words.length; n++){
-      const test = line + words[n] + " ";
-      if (ctx.measureText(test).width > maxWidth && n>0){
-        ctx.fillText(line.trim(), x, y + lines*lineHeight);
-        line = words[n] + " ";
-        lines++;
-        if (lines >= maxLines) break;
-      } else {
-        line = test;
-      }
-    }
-    if (lines < maxLines) ctx.fillText(line.trim(), x, y + lines*lineHeight);
   }
 
   // Events
