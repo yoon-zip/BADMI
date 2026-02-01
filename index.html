@@ -417,8 +417,8 @@
           <input class="nick" id="rankInstaTop" maxlength="30" placeholder="인스타 아이디 (예: @yoondminton)" />
           <div class="rankTopActions">
             <button class="action btn-ghost" id="rankRefreshTop" style="width:100%;">🔄 새로고침</button>
-            <button class="action btn-primary" id="rankSubmitTop" style="width:100%;">🏆 랭킹 등록</button>
           </div>
+
         </div>
 
         <div id="rankAreaTop" style="margin-top:10px;">
@@ -600,45 +600,84 @@
     return await jsonp(url);
   }
 
-  function renderRankTable(top20, me){
-    const rows = (top20 || []).map(r => `
-      <tr class="${me && me.rank === r.rank ? "meRow" : ""}">
+function renderRankTable(top20, me){
+  const hasMore = (top20 || []).length > 5;
+
+  const rows = (top20 || []).map(r => {
+    const isExtra = r.rank > 5;
+    return `
+      <tr class="${(me && me.rank === r.rank ? "meRow " : "") + (isExtra ? "rankRowExtra" : "")}" ${isExtra ? 'style="display:none;"' : ""}>
         <td>#${r.rank}</td>
         <td>${escapeHtml(r.nick)}</td>
         <td>${escapeHtml(r.insta)}</td>
         <td>${fixed1(r.score)}</td>
         <td>${fixed1(r.speed)}</td>
       </tr>
-    `).join("");
-
-    const meRow = me && (me.nick || me.insta) ? `
-      <div class="rankHint" style="margin-top:10px;">
-        <b>내 기록</b> :
-        ${me.rank ? `#${me.rank}위` : "오늘 기록 없음"}
-        ${me.score != null ? ` · 점수 ${fixed1(me.score)}` : ""}
-        ${me.speed != null ? ` · 속도 ${fixed1(me.speed)} km/h` : ""}
-      </div>
-    ` : "";
-
-    return `
-      <div class="rankBox">
-        <div class="rankTitle">🏆 TOP 20</div>
-        <table class="rank">
-          <thead>
-            <tr>
-              <th>순위</th>
-              <th>이름</th>
-              <th>인스타</th>
-              <th>점수(10)</th>
-              <th>속도(km/h)</th>
-            </tr>
-          </thead>
-          <tbody>${rows || `<tr><td colspan="5">아직 등록된 기록이 없어요!</td></tr>`}</tbody>
-        </table>
-        ${meRow}
-      </div>
     `;
+  }).join("");
+
+  function attachRankToggle(containerId){
+    const root = document.getElementById(containerId);
+    if (!root) return;
+  
+    const btn = root.querySelector("#rankToggleBtn");
+    if (!btn) return;
+  
+    const extras = Array.from(root.querySelectorAll("tr.rankRowExtra"));
+    let expanded = false;
+  
+    function label(){
+      if (currentLang === "ko") return expanded ? "▲ TOP 5만 보기" : "▼ TOP 20 펼치기";
+      if (currentLang === "zh") return expanded ? "▲ 只看TOP5" : "▼ 展开TOP20";
+      return expanded ? "▲ Show Top 5" : "▼ Show Top 20";
+    }
+  
+    btn.textContent = label();
+  
+    btn.onclick = () => {
+      expanded = !expanded;
+      extras.forEach(tr => tr.style.display = expanded ? "" : "none");
+      btn.textContent = label();
+    };
   }
+
+
+  const meRow = me && (me.nick || me.insta) ? `
+    <div class="rankHint" style="margin-top:10px;">
+      <b>내 기록</b> :
+      ${me.rank ? `#${me.rank}위` : "오늘 기록 없음"}
+      ${me.score != null ? ` · 점수 ${fixed1(me.score)}` : ""}
+      ${me.speed != null ? ` · 속도 ${fixed1(me.speed)} km/h` : ""}
+    </div>
+  ` : "";
+
+  const toggleBtn = hasMore ? `
+    <div style="margin-top:10px;">
+      <button class="action btn-ghost" id="rankToggleBtn" style="width:100%;">+</button>
+    </div>
+  ` : "";
+
+  return `
+    <div class="rankBox">
+      <div class="rankTitle">🏆 TOP 20</div>
+      <table class="rank">
+        <thead>
+          <tr>
+            <th>순위</th>
+            <th>이름</th>
+            <th>인스타</th>
+            <th>점수(10)</th>
+            <th>속도(km/h)</th>
+          </tr>
+        </thead>
+        <tbody>${rows || `<tr><td colspan="5">아직 등록된 기록이 없어요!</td></tr>`}</tbody>
+      </table>
+      ${toggleBtn}
+      ${meRow}
+    </div>
+  `;
+}
+
 
   /************ ✅ i18n ************/
   const i18n = {
@@ -917,6 +956,8 @@
     const insta = normalizeInsta($("rankInstaTop").value.trim());
 
     $("rankAreaTop").innerHTML = `<div class="rankBox">${t.rank_loading}</div>`;
+    attachRankToggle("rankAreaTop");
+
 
     try{
       const data = await apiTop(date, nick, insta);
@@ -947,32 +988,44 @@
     saveRankInputs(nick, insta);
 
     try{
-      $("rankSubmitTop").disabled = true;
-      $("rankSubmitTop").textContent = "⏳ ...";
+      const btn = document.getElementById("rankSubmitBottom") || document.getElementById("rankSubmitTop");
 
-      const date = todayStr();
-      const data = await apiSubmit(date, nick, insta, score, speed);
-      if (!data || !data.ok) throw new Error(data?.error || "submit failed");
-
-      // submit 응답이 top20/me 포함이면 그대로 렌더
-      if (data.top20) {
-        $("rankAreaTop").innerHTML = renderRankTable(data.top20, data.me);
-      } else {
-        await refreshTop20();
+      try{
+        if (btn){
+          btn.disabled = true;
+          btn.textContent = "⏳ ...";
+        }
+      
+        const date = todayStr();
+        const data = await apiSubmit(date, nick, insta, score, speed);
+        if (!data || !data.ok) throw new Error(data?.error || "submit failed");
+      
+        if (data.top20) {
+          $("rankAreaTop").innerHTML = renderRankTable(data.top20, data.me);
+          attachRankToggle("rankAreaTop");
+        } else {
+          await refreshTop20();
+        }
+      
+        safeGtag("event","rank_submit",{ lang: currentLang, score, speed });
+      }catch(e){
+        console.error(e);
+        alert(t.alerts.rank_fail);
+      }finally{
+        if (btn){
+          btn.disabled = false;
+          btn.textContent = "🏆 " + t.rank_submit;
+        }
       }
 
-      safeGtag("event","rank_submit",{ lang: currentLang, score, speed });
-    }catch(e){
-      console.error(e);
-      alert(t.alerts.rank_fail);
-    }finally{
-      $("rankSubmitTop").disabled = false;
-      $("rankSubmitTop").textContent = "🏆 " + t.rank_submit;
-    }
   }
 
-  $("rankRefreshTop").addEventListener("click", refreshTop20);
-  $("rankSubmitTop").addEventListener("click", submitTopRank);
+$("rankRefreshTop").addEventListener("click", refreshTop20);
+
+const _rankSubmitTop = $("rankSubmitTop");
+if (_rankSubmitTop) _rankSubmitTop.addEventListener("click", submitTopRank);
+
+$("rankSubmitTop").addEventListener("click", submitTopRank);
 
   /************ ✅ Pose / Analysis ************/
   let poseLandmarker = null;
@@ -1314,6 +1367,10 @@
         <b>${t.feedback_label}:</b><br/>
         ${escapeHtml(feedback).replaceAll("\n","<br/>")}
       </div>
+      <div style="margin-top:10px;">
+        <button class="action btn-primary" id="rankSubmitBottom" style="width:100%;">🏆 ${t.rank_submit}</button>
+      </div>
+
 
       <div style="margin-top:10px;">
         <button class="action btn-ghost" id="downloadStoryButton" style="width:100%;">${t.save_story}</button>
@@ -1323,7 +1380,9 @@
     $("downloadStoryButton").addEventListener("click", async () => {
       await downloadStoryImage({ poseFrameUrl, score, speed, feedback });
     });
-  }
+    
+    $("rankSubmitBottom").addEventListener("click", submitTopRank);
+
 
   // Story image generator (1080x1920)
   async function downloadStoryImage({ poseFrameUrl, score, speed, feedback }){
