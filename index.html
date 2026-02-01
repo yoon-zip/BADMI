@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>badmi | Smash Analyzer</title>
+
   <!-- Google Analytics (GA4) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-CNMTT9RMY8"></script>
   <script>
@@ -12,10 +13,12 @@
     gtag('js', new Date());
     gtag('config', 'G-CNMTT9RMY8');
   </script>
+
   <!-- Google AdSense -->
   <script async
     src="https://pagead2.googlesyndication.com/pagead/js?client=ca-pub-3392083121307952"
     crossorigin="anonymous"></script>
+
   <style>
     :root{
       --bg:#0b1020;
@@ -42,11 +45,13 @@
         var(--bg);
       min-height:100vh;
     }
+
     .wrap{
       max-width: 760px;
       margin: 0 auto;
       padding: 16px 14px 138px;
     }
+
     .topbar{
       position: sticky;
       top: 0;
@@ -55,6 +60,7 @@
       background: linear-gradient(180deg, rgba(11,16,32,0.92), rgba(11,16,32,0.55), rgba(11,16,32,0));
       backdrop-filter: blur(8px);
     }
+
     .titleRow{
       display:flex;
       align-items:center;
@@ -80,6 +86,7 @@
       font-size: 11px;
       color: var(--muted);
     }
+
     .lang-switch{
       display:flex;
       gap:6px;
@@ -100,6 +107,7 @@
       background: linear-gradient(135deg, rgba(124,58,237,1), rgba(59,130,246,1));
       border-color: rgba(255,255,255,0.18);
     }
+
     .card{
       background: var(--card);
       border: 1px solid var(--stroke);
@@ -117,6 +125,7 @@
     }
     .hint{ color: var(--muted); font-size: 13px; line-height:1.5; }
     .small{ color: var(--muted); font-size: 12px; }
+
     details{
       border: 1px solid var(--stroke);
       border-radius: 14px;
@@ -139,6 +148,7 @@
       font-size: 13px;
       line-height:1.55;
     }
+
     /* Video 9:16 */
     #videoContainer{
       position: relative;
@@ -162,6 +172,7 @@
       object-fit: cover;
     }
     canvas{ pointer-events:none; }
+
     .hud{
       position:absolute;
       left:12px;
@@ -184,6 +195,7 @@
       align-items:center;
       gap:8px;
     }
+
     .playOverlay{
       position:absolute;
       inset:0;
@@ -208,6 +220,7 @@
       backdrop-filter: blur(8px);
     }
     .playOverlay.hidden{ display:none; }
+
     /* Status line */
     .statusLine{
       display:flex;
@@ -225,6 +238,7 @@
     }
     .dot.live{ background: var(--accent2); box-shadow: 0 0 0 6px rgba(34,197,94,0.18); }
     .dot.err{ background: var(--danger); box-shadow: 0 0 0 6px rgba(239,68,68,0.18); }
+
     /* Results */
     #results{ display:none; }
     .resultGrid{
@@ -242,6 +256,7 @@
     .metric .label{ color: var(--muted); font-size: 11px; }
     .metric .value{ margin-top: 6px; font-size: 24px; font-weight: 950; }
     .metric .unit{ font-size: 13px; font-weight: 800; color: rgba(255,255,255,0.70); }
+
     .feedbackBox{
       margin-top: 10px;
       padding: 12px;
@@ -262,6 +277,7 @@
       width:100%;
       display:block;
     }
+
     /* Ranking UI */
     .row{
       display:flex;
@@ -317,6 +333,7 @@
       font-size: 12px;
       line-height: 1.4;
     }
+
     /* Sticky action bar */
     .actionBar{
       position: fixed;
@@ -351,6 +368,7 @@
     }
     button.action:active{ transform: translateY(1px); }
     button.action[disabled]{ opacity:0.55; cursor:not-allowed; }
+
     .btn-primary{
       background: linear-gradient(135deg, rgba(124,58,237,1), rgba(59,130,246,1));
       color:white;
@@ -360,11 +378,13 @@
       border: 1px solid var(--stroke);
       color: var(--text);
     }
+
     @media (min-width: 900px){
       h1{ font-size: 20px; }
     }
   </style>
 </head>
+
 <body>
   <div class="wrap">
     <div class="topbar">
@@ -373,6 +393,7 @@
           <h1 id="t_title">🏸 배드민턴 스매싱 분석기</h1>
           <div class="sub" id="t_sub">세로 촬영 권장(촬영 팁 아래 클릭)</div>
         </div>
+
         <div class="lang-switch" aria-label="language switch">
           <button type="button" data-lang="ko" class="active">KR</button>
           <button type="button" data-lang="en">EN</button>
@@ -380,6 +401,7 @@
         </div>
       </div>
     </div>
+
     <!-- ✅ TOP20: 페이지 맨 위 -->
     <div class="card" id="topRankCard">
       <div class="inner">
@@ -389,6 +411,7 @@
         </div>
       </div>
     </div>
+
     <!-- Upload -->
     <div class="card">
       <div class="inner">
@@ -398,13 +421,16 @@
           신체 분석이 잘 되었나 보고 싶다면 <b>재생</b> 버튼을 눌러주세요.
           결과는 금방 나와요.
         </div>
+
         <div style="margin-top:10px;">
           <input type="file" id="videoUpload" accept="video/mp4,video/quicktime,video/webm" style="width:100%;" />
         </div>
+
         <details>
           <summary id="t_tips_title">촬영 팁 보기</summary>
           <ul class="tips" id="t_tips_list"></ul>
         </details>
+
         <div class="statusLine">
           <div style="display:flex; align-items:center; gap:10px;">
             <span class="dot" id="statusDot"></span>
@@ -412,11 +438,13 @@
           </div>
           <span id="loading" style="display:none; font-weight:950; color: rgba(255,255,255,0.85);">분석 중…</span>
         </div>
+
         <div class="small" style="margin-top:10px;" id="t_privacy">
           ※ 업로드한 영상은 브라우저에서만 처리됩니다.
         </div>
       </div>
     </div>
+
     <!-- Video -->
     <div class="card">
       <div class="inner">
@@ -425,22 +453,27 @@
           영상 가이드에 맞게 찍어주셔야 분석이 잘 되어요.
         </div>
       </div>
+
       <div id="videoContainer">
         <div class="hud">
           <div class="pill" id="hudPill">⏳ 열심히 분석할 준비 중이에요</div>
         </div>
+
         <button id="playOverlay" class="playOverlay" type="button">
           <div class="bubble">▶ <span id="t_play">재생</span></div>
         </button>
+
         <video id="video" muted playsinline></video>
         <canvas id="output_canvas"></canvas>
       </div>
     </div>
+
     <!-- Results -->
     <div class="card" id="results">
       <div class="inner" id="resultsInner"></div>
     </div>
   </div>
+
   <!-- Sticky action bar -->
   <div class="actionBar">
     <div class="actionRow">
@@ -448,16 +481,21 @@
       <button class="action btn-ghost" id="resetButton" disabled>↩️ <span id="t_reset">초기화</span></button>
     </div>
   </div>
+
 <script type="module">
   import { PoseLandmarker, FilesetResolver, DrawingUtils } from "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.0";
+
   /************ ✅ 랭킹 서버 URL(이거만 맞추면 됨) ************/
   const RANK_API = "https://script.google.com/macros/s/AKfycbx5sF3-tuPcMAOABoKXbB9lKZdt1ix8JyK7wkdkGtpQEpspcu_VhRBDyjeF2o9KwCR0vQ/exec";
+
+
   const $ = (id) => document.getElementById(id);
   function safeGtag(...args){
     try{ if (typeof gtag === "function") gtag(...args); }catch(e){}
   }
   function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
   function round1(n){ return Math.round(n * 10) / 10; }
+
   function todayStr(){
     const d = new Date();
     const y = d.getFullYear();
@@ -465,51 +503,61 @@
     const dd = String(d.getDate()).padStart(2,"0");
     return `${y}-${m}-${dd}`;
   }
+
   // JSONP request (Apps Script용)
   function jsonp(url, timeoutMs = 9000){
     return new Promise((resolve, reject) => {
       const cbName = "__cb_" + Math.random().toString(36).slice(2);
       const sep = url.includes("?") ? "&" : "?";
       const full = url + sep + "callback=" + cbName;
+
       const script = document.createElement("script");
       let done = false;
+
       const timer = setTimeout(() => {
         if (done) return;
         done = true;
         cleanup();
         reject(new Error("timeout"));
       }, timeoutMs);
+
       function cleanup(){
         clearTimeout(timer);
         try{ delete window[cbName]; }catch(e){ window[cbName] = undefined; }
         if (script && script.parentNode) script.parentNode.removeChild(script);
       }
+
       window[cbName] = (data) => {
         if (done) return;
         done = true;
         cleanup();
         resolve(data);
       };
+
       script.onerror = () => {
         if (done) return;
         done = true;
         cleanup();
         reject(new Error("script_error"));
       };
+
       script.src = full;
       document.head.appendChild(script);
     });
   }
+
   async function fetchTopForToday(nickForMe=""){
     const date = todayStr();
     const url = `${RANK_API}?action=top&date=${encodeURIComponent(date)}&nick=${encodeURIComponent(nickForMe)}`;
     return await jsonp(url);
   }
+
   async function submitRanking(nick, score, speed){
     const date = todayStr();
     const url = `${RANK_API}?action=submit&date=${encodeURIComponent(date)}&nick=${encodeURIComponent(nick)}&score=${encodeURIComponent(score)}&speed=${encodeURIComponent(speed)}`;
     return await jsonp(url);
   }
+
   function escapeHtml(s){
     return String(s||"")
       .replaceAll("&","&amp;")
@@ -518,6 +566,7 @@
       .replaceAll('"',"&quot;")
       .replaceAll("'","&#039;");
   }
+
   function renderRankTable(top20, me){
     const rows = (top20 || []).map(r => `
       <tr class="${me && me.rank === r.rank ? "meRow" : ""}">
@@ -527,6 +576,7 @@
         <td>${Math.round(r.speed)}</td>
       </tr>
     `).join("");
+
     const meRow = (me && me.nick && me.insta) ? `
       <div class="rankHint" style="margin-top:10px;">
         <b>내 기록</b> :
@@ -535,6 +585,7 @@
         ${me.speed != null ? ` · 속도 ${Math.round(me.speed)} km/h` : ""}
       </div>
     ` : "";
+
     return `
       <div class="rankBox">
         <div class="rankTitle">🏆 TOP 20</div>
@@ -554,6 +605,7 @@
       </div>
     `;
   }
+
   // ✅ 페이지 상단 TOP20 로드/갱신
   async function refreshTopRank(nickForMe=""){
     const area = $("topRankArea");
@@ -570,6 +622,7 @@
       area.innerHTML = `<div class="rankBox">랭킹 서버 연결이 잠깐 불안정해요. 조금 뒤 다시 시도해줘!</div>`;
     }
   }
+
   // i18n
   const i18n = {
     ko: {
@@ -710,10 +763,12 @@
       }
     }
   };
+
   let currentLang = "ko";
   function setLang(lang){
     currentLang = lang;
     const t = i18n[lang] || i18n.ko;
+
     $("t_title").textContent = t.title;
     $("t_sub").textContent = t.sub;
     $("t_step1").textContent = t.step1;
@@ -725,6 +780,7 @@
     $("t_start").textContent = t.start;
     $("t_reset").textContent = t.reset;
     $("t_privacy").textContent = t.privacy;
+
     const tipsUl = $("t_tips_list");
     tipsUl.innerHTML = "";
     t.tips_list.forEach(x=>{
@@ -732,34 +788,42 @@
       li.textContent = x;
       tipsUl.appendChild(li);
     });
+
     document.querySelectorAll(".lang-switch button").forEach(btn=>{
       btn.classList.toggle("active", btn.dataset.lang === lang);
     });
   }
+
   document.querySelectorAll(".lang-switch button").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       setLang(btn.dataset.lang);
       safeGtag("event", "language_switch", { lang: btn.dataset.lang });
     });
   });
+
   // --- Mediapipe pose setup ---
   const videoEl = $("video");
   const canvasEl = $("output_canvas");
   const ctx = canvasEl.getContext("2d");
   const drawUtils = new DrawingUtils(ctx);
+
   let landmarker = null;
   let rafId = null;
   let analyzing = false;
+
   // score/speed placeholders (여기서 네 계산 로직이 들어가면 됨)
   let lastScore = null;
   let lastSpeed = null;
+
   function setStatus(state){
     const dot = $("statusDot");
     const text = $("statusText");
     const loading = $("loading");
     const t = i18n[currentLang] || i18n.ko;
+
     dot.classList.remove("live","err");
     loading.style.display = "none";
+
     if (state === "idle"){
       text.textContent = t.status_idle;
     } else if (state === "ready"){
@@ -780,9 +844,11 @@
       text.textContent = t.status_initfail;
     }
   }
+
   function setHud(msg){
     $("hudPill").textContent = msg;
   }
+
   async function initPose(){
     try{
       const vision = await FilesetResolver.forVisionTasks(
@@ -801,6 +867,7 @@
       alert((i18n[currentLang]||i18n.ko).alerts.initfail);
     }
   }
+
   function resizeCanvas(){
     const rect = videoEl.getBoundingClientRect();
     canvasEl.width = Math.floor(rect.width * devicePixelRatio);
@@ -809,28 +876,35 @@
     canvasEl.style.height = rect.height + "px";
     ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
   }
+
   function clearCanvas(){
     ctx.clearRect(0,0,canvasEl.width, canvasEl.height);
   }
+
   function stopLoop(){
     if (rafId) cancelAnimationFrame(rafId);
     rafId = null;
   }
+
   function loop(){
     if (!analyzing) return;
+
     if (videoEl.readyState >= 2 && landmarker){
       const nowMs = performance.now();
       const res = landmarker.detectForVideo(videoEl, nowMs);
       clearCanvas();
+
       if (res && res.landmarks && res.landmarks[0]){
         drawUtils.drawLandmarks(res.landmarks[0], { radius: 2 });
         drawUtils.drawConnectors(res.landmarks[0], PoseLandmarker.POSE_CONNECTIONS);
+
         // ✅ 여기에 너의 스코어/스피드 계산 로직을 넣으면 됨
         // 지금은 데모로 임시값을 만든다
-        lastScore = clamp((lastScore ?? 40) + (Math.random()*2-1), 0, 60);
+        lastScore = clamp((lastScore ?? 70) + (Math.random()*2-1), 0, 100);
         lastSpeed = clamp((lastSpeed ?? 180) + (Math.random()*6-3), 0, 350);
       }
     }
+
     if (videoEl.ended){
       analyzing = false;
       setStatus("done");
@@ -839,12 +913,15 @@
       stopLoop();
       return;
     }
+
     rafId = requestAnimationFrame(loop);
   }
+
   function showResults(){
     const t = i18n[currentLang] || i18n.ko;
     const score = round1(lastScore ?? 0);
     const speed = Math.round(lastSpeed ?? 0);
+
     const html = `
       <div class="sectionTitle">${t.result_title}</div>
       <div class="resultGrid">
@@ -857,72 +934,86 @@
           <div class="value">${speed}<span class="unit"> km/h</span></div>
         </div>
       </div>
+
       <div class="feedbackBox">
         <b>${t.feedback_label}</b><br/>
         지금은 데모 점수/속도입니다. (계산 로직 붙이면 실제 값으로 바뀜!)
       </div>
+
       <div class="row" style="margin-top:12px;">
         <input id="nickInput" class="nick" placeholder="이름 (또는 별명) @insta" />
+        <button id="rankBtn" class="action btn-primary" style="padding:12px 12px; border-radius:14px; min-width:120px;">
+          🏆 ${t.submit_rank}
+        </button>
       </div>
       <div class="small" style="margin-top:8px;">※ 예: 윤서 @yoondminton</div>
     `;
+
     $("resultsInner").innerHTML = html;
     $("results").style.display = "block";
-    const actionRow = document.querySelector(".actionRow");
-    const rankBtn = document.createElement("button");
-    rankBtn.className = "action btn-primary";
-    rankBtn.style = "padding:12px 12px; border-radius:14px; min-width:120px;";
-    rankBtn.innerHTML = `🏆 ${t.submit_rank}`;
-    actionRow.style.gridTemplateColumns = "1fr 1fr 1fr";
-    actionRow.appendChild(rankBtn);
-    rankBtn.addEventListener("click", async ()=>{
+
+    $("rankBtn").addEventListener("click", async ()=>{
       const nick = $("nickInput").value.trim();
       if (!nick){
         alert("이름/별명을 입력해줘!");
         return;
       }
-      rankBtn.disabled = true;
-      rankBtn.textContent = "등록 중…";
+
+      const btn = $("rankBtn");
+      btn.disabled = true;
+      btn.textContent = "등록 중…";
+
       try{
         const r = await submitRanking(nick, score, speed);
         if (!r || r.ok !== true){
           throw new Error(r?.error || "submit failed");
         }
+
         // ✅ 등록 성공 → 상단 TOP20 즉시 갱신 (내 랭크도 표시)
         await refreshTopRank(nick);
-        rankBtn.textContent = "✅ 등록 완료!";
+
+        btn.textContent = "✅ 등록 완료!";
         safeGtag("event", "ranking_submit", { ok: true });
       }catch(e){
         console.error(e);
         alert((i18n[currentLang]||i18n.ko).alerts.rank_fail);
-        rankBtn.textContent = "🏆 랭킹 등록";
+        btn.textContent = "🏆 랭킹 등록";
       }finally{
-        rankBtn.disabled = false;
+        btn.disabled = false;
       }
     });
   }
+
   // ---- file upload & playback ----
   const playOverlay = $("playOverlay");
+
   $("videoUpload").addEventListener("change", (e)=>{
     const file = e.target.files?.[0];
     if (!file) return;
+
     const t = i18n[currentLang] || i18n.ko;
+
     if (file.size > 100 * 1024 * 1024){
       alert(t.alerts.max);
       e.target.value = "";
       return;
     }
+
     const url = URL.createObjectURL(file);
     videoEl.src = url;
     videoEl.load();
+
     lastScore = null;
     lastSpeed = null;
     $("results").style.display = "none";
+
     playOverlay.classList.remove("hidden");
     setStatus("ready");
     setHud(t.hud_ready);
+
     safeGtag("event", "video_uploaded", { size_mb: Math.round(file.size/1024/1024) });
   });
+
   playOverlay.addEventListener("click", async ()=>{
     playOverlay.classList.add("hidden");
     try{
@@ -933,6 +1024,7 @@
       alert((i18n[currentLang]||i18n.ko).alerts.playfail);
     }
   });
+
   $("startButton").addEventListener("click", ()=>{
     const t = i18n[currentLang] || i18n.ko;
     if (!videoEl.src){
@@ -940,14 +1032,17 @@
       alert(t.alerts.upload);
       return;
     }
+
     if (!landmarker){
       initPose();
       return;
     }
+
     analyzing = true;
     setStatus("analyzing");
     setHud(t.hud_analyzing);
     resizeCanvas();
+
     try{
       videoEl.currentTime = 0;
       videoEl.play().then(()=>{
@@ -959,8 +1054,10 @@
     }catch(e){
       console.error(e);
     }
+
     $("resetButton").disabled = false;
   });
+
   $("resetButton").addEventListener("click", ()=>{
     analyzing = false;
     stopLoop();
@@ -970,22 +1067,28 @@
     playOverlay.classList.remove("hidden");
     $("results").style.display = "none";
     $("resetButton").disabled = true;
+
     lastScore = null;
     lastSpeed = null;
+
     setStatus("ready");
     setHud((i18n[currentLang]||i18n.ko).hud_ready);
     safeGtag("event", "reset");
   });
+
   window.addEventListener("resize", ()=>{
     try{ resizeCanvas(); }catch(e){}
   });
+
   // init
   setLang("ko");
   setStatus("idle");
   setHud((i18n[currentLang]||i18n.ko).hud_wait);
   initPose();
+
   // ✅ 페이지 열리면 TOP20 먼저 가져오기
   refreshTopRank("");
+
 </script>
 </body>
 </html>
