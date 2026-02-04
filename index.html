@@ -387,6 +387,44 @@
     @media (min-width: 900px){
       h1{ font-size: 20px; }
     }
+  .modalOverlay{
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    place-items: center;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(8px);
+    padding: 18px;
+  }
+  .modalOverlay.show{ display: grid; }
+
+  .modalCard{
+    width: min(520px, 100%);
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 20px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.45);
+    overflow: hidden;
+  }
+  .modalInner{ padding: 16px; }
+  .modalTitle{
+    font-weight: 950;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+    margin: 0 0 6px;
+  }
+  .modalDesc{ color: rgba(255,255,255,0.80); font-size: 13px; line-height: 1.55; }
+  .modalBtns{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 14px 16px 16px;
+    border-top: 1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.10);
+  }
+</style>
+
   </style>
 </head>
 
@@ -1131,7 +1169,7 @@
   
     // ✅ 여기서 체감 조절
     const SCORE_BIAS = 1.7;   // 전체적으로 후한 느낌 줄이기(1.2~2.0 사이 추천)
-    const SCORE_CAP  = 8.0;   // 웬만하면 8점 넘지 않게
+    const SCORE_CAP  = 9.0;   // 웬만하면 8점 넘지 않게
   
     const adjusted = clamp(raw - SCORE_BIAS, 0, SCORE_CAP);
     return round1(adjusted);
@@ -1540,6 +1578,22 @@
   resetBtn.disabled = true;
   refreshTop20();
 </script>
+
+<div class="modalOverlay" id="rankModal">
+  <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="rankModalTitle">
+    <div class="modalInner">
+      <h3 class="modalTitle" id="rankModalTitle">🏆 1위 달성!</h3>
+      <div class="modalDesc" id="rankModalDesc">
+        오늘의 랭킹 1등이에요. 바로 스토리로 자랑해도 되겠는데요? 😳
+      </div>
+    </div>
+    <div class="modalBtns">
+      <button class="action btn-ghost" id="rankModalClose">닫기</button>
+      <button class="action btn-primary" id="rankModalStory">스토리 이미지 저장</button>
+    </div>
+  </div>
+</div>
+  
 </body>
 </html>
 ```
