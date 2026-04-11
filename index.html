@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BADMI</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(124, 58, 237, 0.35), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(34, 211, 238, 0.2), transparent 30%),
+        linear-gradient(135deg, #070b1f 0%, #0a1334 45%, #07101d 100%);
+      color: #ffffff;
+      padding: 24px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 960px;
+      padding: 56px 32px;
+      border-radius: 32px;
+      background: rgba(10, 16, 38, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      text-align: center;
+    }
+
+    .logo {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      margin-bottom: 14px;
+    }
+
+    .subtitle {
+      font-size: clamp(1rem, 2vw, 1.15rem);
+      color: rgba(255, 255, 255, 0.78);
+      margin-bottom: 44px;
+      line-height: 1.6;
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .menu-button {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      min-height: 220px;
+      padding: 28px;
+      border-radius: 28px;
+      text-decoration: none;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .menu-button::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0.95;
+      z-index: 0;
+    }
+
+    .menu-button.game::before {
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.36), rgba(59, 130, 246, 0.2));
+    }
+
+    .menu-button.smash::before {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(16, 185, 129, 0.18));
+    }
+
+    .menu-button > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .menu-button:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 22px 48px rgba(0, 0, 0, 0.28);
+      border-color: rgba(255, 255, 255, 0.24);
+    }
+
+    .icon {
+      font-size: 2.5rem;
+      margin-bottom: 18px;
+    }
+
+    .title {
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-weight: 800;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+
+    .desc {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: rgba(255, 255, 255, 0.82);
+      text-align: left;
+    }
+
+    .cta {
+      margin-top: 26px;
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    @media (max-width: 700px) {
+      .container {
+        padding: 40px 20px;
+      }
+
+      .button-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .menu-button {
+        min-height: 190px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1 class="logo">BADMI</h1>
+    <p class="subtitle">
+      원하는 기능을 선택해 바로 시작하세요.<br />
+      그립 전환 연습 게임 또는 스매싱 분석기로 이동할 수 있어요.
+    </p>
+
+    <section class="button-grid">
+      <a class="menu-button game" href="game.html">
+        <div>
+          <div class="icon">🏸</div>
+          <h2 class="title">배드민턴 연습게임</h2>
+          <p class="desc">
+            반응 속도와 그립 전환을 연습할 수 있는 게임 페이지로 이동합니다.
+          </p>
+        </div>
+        <div class="cta">game.html로 이동 →</div>
+      </a>
+
+      <a class="menu-button smash" href="smash.html">
+        <div>
+          <div class="icon">📊</div>
+          <h2 class="title">스매싱 분석기</h2>
+          <p class="desc">
+            업로드한 영상을 바탕으로 스매싱 자세와 동작을 분석하는 페이지로 이동합니다.
+          </p>
+        </div>
+        <div class="cta">smash.html로 이동 →</div>
+      </a>
+    </section>
+  </main>
+</body>
+</html>
