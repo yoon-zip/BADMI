@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏸 배드민턴 스매시</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;700&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#111; font-family:'Noto Sans KR',sans-serif; color:#fff; overflow:hidden; width:100vw; height:100vh; }
+#app { width:100vw; height:100vh; position:relative; }
+
+#webcam {
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; transform:scaleX(-1); opacity:0.18; z-index:1;
+}
+#game-canvas { position:absolute; inset:0; width:100%; height:100%; z-index:10; }
+#hand-canvas  { position:absolute; inset:0; width:100%; height:100%; z-index:20; transform:scaleX(-1); pointer-events:none; }
+
+/* HUD */
+#hud {
+  position:absolute; top:0; left:0; right:0; z-index:30; pointer-events:none;
+  display:flex; align-items:flex-start; justify-content:space-between;
+  padding:14px 22px 0;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.6) 0%,transparent 100%);
+}
+.hud-pill {
+  background:rgba(0,0,0,0.50); border:1px solid rgba(255,255,255,0.12);
+  border-radius:40px; padding:7px 20px;
+  display:flex; flex-direction:column; align-items:center; gap:1px;
+}
+.hud-label { font-size:9px; letter-spacing:4px; color:#7ec870; text-transform:uppercase; }
+.hud-val   { font-family:'Black Han Sans',sans-serif; font-size:36px; line-height:1.05; color:#f5e642; text-shadow:0 0 18px rgba(245,230,66,0.5); }
+
+#combo-pill {
+  background:rgba(255,80,0,0.18); border:1px solid rgba(255,100,0,0.35);
+  border-radius:40px; padding:7px 18px;
+  font-family:'Black Han Sans',sans-serif; font-size:18px;
+  color:#ff6b35; text-shadow:0 0 10px rgba(255,107,53,0.6);
+  display:none;
+}
+
+#status-msg {
+  position:absolute; bottom:100px; left:50%; transform:translateX(-50%);
+  z-index:31; pointer-events:none;
+  font-size:13px; letter-spacing:2px; color:rgba(255,255,255,0.5);
+  text-shadow:0 1px 4px rgba(0,0,0,0.8); white-space:nowrap;
+}
+
+/* Snap meter */
+#snap-meter {
+  position:absolute; bottom:48px; left:50%; transform:translateX(-50%);
+  z-index:31; display:flex; gap:6px; align-items:center;
+  background:rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.1);
+  border-radius:30px; padding:7px 16px; pointer-events:none;
+}
+.sdot { width:11px; height:11px; border-radius:50%; background:#182014; border:1px solid #28381e; transition:all 0.1s; }
+.sdot.on  { background:#6dda4a; box-shadow:0 0 8px #6dda4a; border-color:#6dda4a; }
+.sdot.max { background:#f5e642; box-shadow:0 0 14px #f5e642; border-color:#f5e642; }
+#snap-text { font-size:9px; letter-spacing:3px; color:#3a5030; margin-left:4px; }
+
+/* Score popup */
+#score-pop {
+  position:absolute; z-index:40; pointer-events:none;
+  font-family:'Black Han Sans',sans-serif; font-size:50px;
+  color:#f5e642; text-shadow:0 0 28px rgba(245,230,66,0.9);
+  opacity:0; transition:opacity 0.15s, transform 0.35s;
+}
+
+/* Miss flash */
+#miss-flash { position:absolute; inset:0; z-index:45; pointer-events:none; background:transparent; transition:background 0.06s; }
+
+/* Countdown overlay — simple absolute div, no flex */
+#countdown {
+  position:absolute; inset:0; z-index:55; pointer-events:none;
+  display:none;                        /* toggled by JS */
+  align-items:center; justify-content:center;
+  font-family:'Black Han Sans',sans-serif; font-size:180px;
+  color:rgba(245,230,66,0.18);
+  text-shadow:0 0 60px rgba(245,230,66,0.15);
+}
+
+/* ── SCREENS ── */
+.screen {
+  position:absolute; inset:0; z-index:100;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:rgba(4,8,4,0.90); backdrop-filter:blur(14px);
+}
+.screen.hidden { display:none !important; }
+
+.screen h1 { font-family:'Black Han Sans',sans-serif; font-size:clamp(50px,9vw,90px); color:#f5e642; text-shadow:0 0 50px rgba(245,230,66,0.3); letter-spacing:-2px; margin-bottom:4px; }
+.screen h2 { font-family:'Black Han Sans',sans-serif; font-size:clamp(20px,4vw,36px); color:#ccc; margin-bottom:26px; }
+.screen p  { color:#777; font-size:14px; line-height:2.1; text-align:center; max-width:440px; margin-bottom:26px; white-space:pre-line; }
+
+.btn { font-family:'Black Han Sans',sans-serif; font-size:16px; letter-spacing:2px; padding:12px 36px; border:none; border-radius:8px; cursor:pointer; transition:all 0.2s; margin:4px; }
+.btn-main  { background:#f5e642; color:#090908; }
+.btn-main:hover { transform:scale(1.06); box-shadow:0 0 26px rgba(245,230,66,0.4); }
+.btn-ghost { background:transparent; color:#aaa; border:1px solid rgba(255,255,255,0.2); }
+.btn-ghost:hover { border-color:#6dda4a; color:#6dda4a; }
+
+.cards { display:flex; gap:12px; margin-bottom:26px; flex-wrap:wrap; justify-content:center; }
+.card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:16px 18px; width:148px; text-align:center; }
+.card-icon { font-size:32px; margin-bottom:8px; }
+.card-ttl  { font-size:11px; font-weight:700; color:#6dda4a; letter-spacing:1px; margin-bottom:5px; }
+.card-dsc  { font-size:11px; color:#555; line-height:1.6; }
+
+/* Ranking */
+#rank-table { width:500px; max-width:88vw; border-collapse:collapse; margin:14px 0 26px; }
+#rank-table th { font-size:9px; letter-spacing:3px; color:#6dda4a; padding:7px 12px; text-align:left; border-bottom:1px solid rgba(109,218,74,0.2); }
+#rank-table td { padding:9px 12px; font-size:14px; border-bottom:1px solid rgba(255,255,255,0.04); }
+#rank-table tr:nth-child(1) td { color:#f5e642; }
+.rk-num   { color:#444; font-size:12px; }
+.rk-score { font-family:'Black Han Sans',sans-serif; font-size:20px; }
+
+#name-wrap { display:flex; gap:10px; margin-bottom:22px; }
+#pname {
+  font-family:'Noto Sans KR',sans-serif; font-size:14px;
+  background:rgba(255,255,255,0.07); border:1px solid rgba(109,218,74,0.35);
+  color:#fff; padding:9px 14px; border-radius:8px; outline:none;
+  width:190px; text-align:center;
+}
+#pname::placeholder { color:#444; }
+
+/* Camera warn */
+#cam-warn { position:absolute; inset:0; z-index:200; background:rgba(0,0,0,0.93); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; padding:30px; }
+#cam-warn.hidden { display:none; }
+#cam-warn h2 { font-family:'Black Han Sans',sans-serif; font-size:30px; color:#ef4444; }
+#cam-warn p  { color:#888; max-width:380px; line-height:1.8; }
+
+/* Tutorial overlay */
+#tutorial-overlay {
+  position:absolute; inset:0; z-index:95; pointer-events:none;
+  display:none;
+}
+#tutorial-overlay.show { display:block; }
+#tutorial-panel {
+  position:absolute; right:22px; top:96px; width:min(360px, calc(100vw - 44px));
+  background:rgba(6,10,6,0.82); border:1px solid rgba(109,218,74,0.28);
+  border-radius:18px; padding:18px 18px 16px; box-shadow:0 12px 40px rgba(0,0,0,0.28);
+  backdrop-filter:blur(10px);
+}
+.tutorial-kicker { font-size:10px; letter-spacing:3px; color:#6dda4a; margin-bottom:8px; }
+#tutorial-step-title { font-family:'Black Han Sans',sans-serif; font-size:28px; color:#f5e642; margin-bottom:8px; }
+#tutorial-step-desc { font-size:14px; color:#ddd; line-height:1.7; margin-bottom:14px; white-space:pre-line; }
+#tutorial-progress { display:flex; gap:8px; margin-bottom:14px; }
+.tut-dot { width:10px; height:10px; border-radius:50%; background:#243221; border:1px solid #355130; }
+.tut-dot.on { background:#6dda4a; box-shadow:0 0 10px rgba(109,218,74,0.6); border-color:#6dda4a; }
+.pose-card {
+  border-radius:14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+  padding:14px;
+}
+.pose-title { font-size:12px; letter-spacing:2px; color:#f5e642; margin-bottom:10px; }
+.pose-figure {
+  position:relative; height:120px; border-radius:12px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  overflow:hidden; margin-bottom:10px;
+}
+.pose-head {
+  position:absolute; left:84px; top:18px; width:24px; height:24px; border-radius:50%; background:#fff1bf;
+}
+.pose-body {
+  position:absolute; left:93px; top:42px; width:8px; height:34px; border-radius:10px; background:#6dda4a;
+}
+.pose-arm {
+  position:absolute; left:97px; top:48px; width:44px; height:4px; transform-origin:left center;
+  background:#fff; border-radius:4px; box-shadow:0 0 10px rgba(255,255,255,0.16);
+}
+.pose-arm.before { transform:rotate(-42deg); opacity:0.42; }
+.pose-arm.after  { transform:rotate(8deg); }
+.pose-wrist-arc {
+  position:absolute; left:132px; top:36px; width:36px; height:36px;
+  border:3px solid transparent; border-top-color:#f5e642; border-right-color:#f5e642;
+  border-radius:50%; transform:rotate(18deg);
+  animation:wristArc 1.1s ease-in-out infinite;
+}
+.pose-shuttle {
+  position:absolute; right:52px; top:54px; width:18px; height:18px; border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, #fff, #d8b870 75%);
+  box-shadow:0 0 18px rgba(245,230,66,0.22);
+}
+.pose-hint { font-size:12px; color:#bbb; line-height:1.6; }
+.pose-hint b { color:#fff; }
+@keyframes wristArc {
+  0%,100% { transform:rotate(8deg) scale(0.95); opacity:0.5; }
+  50%     { transform:rotate(28deg) scale(1.02); opacity:1; }
+}
+
+#coach-msg {
+  position:absolute; left:50%; top:19%; transform:translate(-50%, -50%) scale(0.94);
+  z-index:92; pointer-events:none;
+  min-width:260px; max-width:min(76vw, 620px);
+  text-align:center; padding:14px 24px; border-radius:999px;
+  background:rgba(0,0,0,0.44); border:1px solid rgba(255,255,255,0.10);
+  font-family:'Black Han Sans',sans-serif; font-size:clamp(24px, 3.2vw, 40px);
+  color:#fff; text-shadow:0 0 20px rgba(0,0,0,0.45);
+  opacity:0; transition:opacity .18s ease, transform .22s ease;
+}
+#coach-msg.show { opacity:1; transform:translate(-50%, -50%) scale(1); }
+#coach-msg.good { color:#f5e642; border-color:rgba(245,230,66,0.28); }
+#coach-msg.bad  { color:#ff8a80; border-color:rgba(255,138,128,0.24); }
+#coach-msg.info { color:#fff; }
+
+#impact-ring {
+  position:absolute; z-index:41; pointer-events:none; width:26px; height:26px; border-radius:50%;
+  border:4px solid rgba(245,230,66,0.88); opacity:0; transform:translate(-50%, -50%) scale(0.3);
+}
+#impact-ring.show { animation:impactRing .36s ease-out forwards; }
+@keyframes impactRing {
+  0%   { opacity:1; transform:translate(-50%, -50%) scale(0.35); }
+  100% { opacity:0; transform:translate(-50%, -50%) scale(3.1); }
+}
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- CAMERA WARN -->
+  <div id="cam-warn" class="hidden">
+    <h2>📷 카메라 권한 필요</h2>
+    <p>손 동작 인식을 위해 카메라가 필요합니다.<br>브라우저에서 카메라를 허용하고 새로고침해주세요.</p>
+    <button class="btn btn-main" onclick="location.reload()">새로고침</button>
+  </div>
+
+  <video id="webcam" autoplay playsinline muted></video>
+  <canvas id="game-canvas"></canvas>
+  <canvas id="hand-canvas"></canvas>
+
+  <!-- HUD (always visible during game) -->
+  <div id="hud">
+    <div class="hud-pill"><span class="hud-label">SCORE</span><span class="hud-val" id="score-val">0</span></div>
+    <div class="hud-pill"><span class="hud-label">SPEED</span><span class="hud-val" id="speed-val">1</span></div>
+    <div id="combo-pill">🔥 <span id="combo-num">0</span> COMBO</div>
+    <div class="hud-pill"><span class="hud-label">BEST</span><span class="hud-val" id="best-val">0</span></div>
+  </div>
+
+  <div id="status-msg">손을 카메라에 보여주세요</div>
+
+  <div id="snap-meter">
+    <div class="sdot" id="sd0"></div><div class="sdot" id="sd1"></div>
+    <div class="sdot" id="sd2"></div><div class="sdot" id="sd3"></div>
+    <div class="sdot" id="sd4"></div>
+    <span id="snap-text">WRIST SNAP</span>
+  </div>
+
+  <div id="score-pop"></div>
+  <div id="miss-flash"></div>
+  <div id="countdown"></div>
+
+  <div id="tutorial-overlay">
+    <div id="tutorial-panel">
+      <div class="tutorial-kicker">TUTORIAL</div>
+      <div id="tutorial-progress">
+        <div class="tut-dot" id="td0"></div>
+        <div class="tut-dot" id="td1"></div>
+        <div class="tut-dot" id="td2"></div>
+      </div>
+      <div id="tutorial-step-title">STEP 1</div>
+      <div id="tutorial-step-desc">셔틀콕 근처에 손을 가져가고 짧게 스냅해보세요.</div>
+      <div class="pose-card">
+        <div class="pose-title">예시 자세</div>
+        <div class="pose-figure">
+          <div class="pose-head"></div>
+          <div class="pose-body"></div>
+          <div class="pose-arm before"></div>
+          <div class="pose-arm after"></div>
+          <div class="pose-wrist-arc"></div>
+          <div class="pose-shuttle"></div>
+        </div>
+        <div class="pose-hint"><b>크게 휘두르지 말고</b> 공 앞에 <b>라켓 헤드</b>를 두고, 닿는 순간 <b>손목만 짧게 톡</b> 꺾어주세요.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="coach-msg"></div>
+  <div id="impact-ring"></div>
+
+
+  <!-- START SCREEN -->
+  <div id="start-screen" class="screen">
+    <h1>🏸 SMASH!</h1>
+    <h2>배드민턴 스매시 게임</h2>
+    <div class="cards">
+      <div class="card"><div class="card-icon">🏟️</div><div class="card-ttl">코트 정면 뷰</div><div class="card-dsc">원근감 있는 실제 코트 1인칭 시점</div></div>
+      <div class="card"><div class="card-icon">✋</div><div class="card-ttl">손 인식</div><div class="card-dsc">MediaPipe 21관절 실시간 추적</div></div>
+      <div class="card"><div class="card-icon">🏸</div><div class="card-ttl">손목 스냅</div><div class="card-dsc">빠른 손목 꺾기로만 점수!</div></div>
+      <div class="card"><div class="card-icon">🏆</div><div class="card-ttl">랭킹</div><div class="card-dsc">한 번도 안 놓친 최고 점수</div></div>
+    </div>
+    <div id="name-wrap"><input id="pname" type="text" placeholder="닉네임 입력" maxlength="12"/></div>
+    <button class="btn btn-main" onclick="startGame()">게임 시작</button>
+    <button class="btn btn-ghost" onclick="showRanking()">🏆 랭킹 보기</button>
+  </div>
+
+  <!-- RANKING SCREEN -->
+  <div id="ranking-screen" class="screen hidden">
+    <h2>🏆 명예의 전당</h2>
+    <table id="rank-table">
+      <thead><tr><th>#</th><th>플레이어</th><th>점수</th><th>날짜</th></tr></thead>
+      <tbody id="rank-body"></tbody>
+    </table>
+    <button class="btn btn-main" onclick="showStart()">돌아가기</button>
+  </div>
+
+  <!-- GAME OVER SCREEN -->
+  <div id="gameover-screen" class="screen hidden">
+    <h1 id="go-emoji">💥</h1>
+    <h2 id="go-title">GAME OVER</h2>
+    <p id="go-desc"></p>
+    <button class="btn btn-main" id="go-reg" onclick="registerScore()">🏆 랭킹 등록</button>
+    <button class="btn btn-ghost" onclick="showStart()">메인으로</button>
+    <button class="btn btn-ghost" onclick="startGame()">다시 하기</button>
+  </div>
+
+</div><!-- #app -->
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script>
+/* ═══════════════════════════════════════════════════════
+   BADMINTON SMASH  —  Fixed & Immersive Court View
+   Fixes: countdown blocking, shuttle not appearing,
+          net too faint, miss detection too eager
+═══════════════════════════════════════════════════════ */
+
+// ── Canvas / Dimensions ──────────────────────────────
+const GC  = document.getElementById('game-canvas');
+const g   = GC.getContext('2d');
+const HC  = document.getElementById('hand-canvas');
+const h   = HC.getContext('2d');
+const vid = document.getElementById('webcam');
+
+let W = 0, H = 0;
+// Vanishing point (horizon): center-x, ~40% down
+function VPX() { return W * 0.5; }
+function VPY() { return H * 0.40; }
+
+function resize() {
+  W = GC.width  = HC.width  = window.innerWidth;
+  H = GC.height = HC.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── Court-space projection ───────────────────────────
+// u in [0,1] = left→right,  v in [0,1] = far→near
+// At v=0: converges to vanishing point
+// At v=1: near baseline (full width)
+const FAR_L_F  = 0.22;   // fraction of W at far left edge
+const FAR_R_F  = 0.78;
+const NEAR_L_F = -0.02;  // can bleed off-screen slightly
+const NEAR_R_F =  1.02;
+const NEAR_Y_F =  0.94;  // fraction of H for near baseline y
+
+function proj(u, v) {
+  const lx = W * FAR_L_F  + (W * NEAR_L_F - W * FAR_L_F)  * v;
+  const rx = W * FAR_R_F  + (W * NEAR_R_F - W * FAR_R_F)  * v;
+  const sy = VPY()         + (H * NEAR_Y_F - VPY())         * v;
+  return { x: lx + (rx - lx) * u, y: sy };
+}
+
+// Net v-position in court space (0=far, 1=near)
+// = 0.5 means halfway, but visually net should be ~35% of court depth
+const V_NET = 0.35;
+
+// ── Game State ───────────────────────────────────────
+let gameState = 'start';  // 'start' | 'tutorial' | 'transition' | 'playing' | 'gameover'
+let score = 0, combo = 0, bestScore = 0;
+let currentSpeedLevel = 1;
+let playerName = 'Player', lastScore = 0;
+const API_URL = 'https://script.google.com/macros/s/AKfycbx_uZ659gPcHrS5z1BpERhqx34ZpMLsb83V_qRK0N164alB1jfrSueqQfxx6XbvwPO34g/exec';
+
+// ── Shuttle ──────────────────────────────────────────
+const SH = {
+  u: 0.5, v: 0.0,
+  su: 0,  sv: 0,
+  active: false,
+  onPlayer: false, // has it crossed the net?
+  trail: [],
+  arcPeak: 0,
+};
+
+function getShuttleScreenPos(u = SH.u, v = SH.v) {
+  const base = proj(u, v);
+  const progress = Math.max(0, Math.min(1, (v - 0.02) / 1.04));
+  const arc = Math.sin(progress * Math.PI) * SH.arcPeak;
+  return { x: base.x, y: base.y - arc };
+}
+
+function launchShuttle() {
+  // Start on opponent side (far), fly toward player (near)
+  const speed = 0.0082 + Math.min(score * 0.00065, 0.010) + Math.random() * 0.0024;
+  currentSpeedLevel = Math.min(9, 1 + Math.floor(Math.max(0, speed - 0.0082) / 0.0019));
+  SH.u       = 0.25 + Math.random() * 0.50;
+  SH.v       = 0.02;
+  SH.su      = (0.5 - SH.u) * 0.0048 + (Math.random() - 0.5) * 0.0035;
+  SH.sv      = speed;
+  SH.arcPeak = 90 + Math.random() * 26;
+  SH.onPlayer = false;
+  SH.active   = true;
+  SH.trail    = [];
+  updateHUD();
+}
+
+// ── Hand Tracking ────────────────────────────────────
+let landmarks  = null;
+let wristHist  = [];
+let snapPow    = 0;
+let snapFired  = false;
+let tutorialIndex = 0;
+let tutorialTimer = null;
+let feedbackTimer = null;
+let transitionTimer = null;
+let countdownTimer = null;
+let impactFlashTimer = null;
+let gripPoseActive = false;
+let gripHoldStart = 0;
+let gripReadyLatched = false;
+let waitingGripStart = false;
+let lastGripPromptAt = 0;
+
+const tutorialSteps = [
+  { title:'STEP 1', desc:'셔틀콕 근처에 손을 가져가고\n손목을 짧게 한 번 꺾어보세요.', speed:0.0084 },
+  { title:'STEP 2', desc:'이번에는 조금 더 빠르게 와요.\n공 앞에 손을 두고 짧게 톡!', speed:0.0098 },
+  { title:'STEP 3', desc:'좋아요! 마지막이에요.\n타이밍 맞춰 한 번 더 스매시!', speed:0.0112 },
+];
+
+function getHandScale(lm) {
+  const wrist = lm[0], mcp = lm[9];
+  const dx = (mcp.x - wrist.x) * W;
+  const dy = (mcp.y - wrist.y) * H;
+  return Math.max(40, Math.hypot(dx, dy));
+}
+
+function isGripPose(lm) {
+  if (!lm) return false;
+  const scale = getHandScale(lm);
+  const palm = lm[9];
+  const wrist = lm[0];
+
+  const fingerPairs = [
+    [8, 5],
+    [12, 9],
+    [16, 13],
+    [20, 17],
+  ];
+
+  let curled = 0;
+  for (const [tipIdx, baseIdx] of fingerPairs) {
+    const tip = lm[tipIdx], base = lm[baseIdx];
+    const dPalm = Math.hypot((tip.x - palm.x) * W, (tip.y - palm.y) * H);
+    const dBase = Math.hypot((tip.x - base.x) * W, (tip.y - base.y) * H);
+    if (dPalm < scale * 1.02 || dBase < scale * 0.98) curled++;
+  }
+
+  const thumb = lm[4];
+  const indexBase = lm[5];
+  const thumbToIndex = Math.hypot((thumb.x - indexBase.x) * W, (thumb.y - indexBase.y) * H);
+  const thumbToPalm = Math.hypot((thumb.x - palm.x) * W, (thumb.y - palm.y) * H);
+  const palmToWrist = Math.hypot((palm.x - wrist.x) * W, (palm.y - wrist.y) * H);
+
+  const looseThumb = thumbToIndex < scale * 1.28 || thumbToPalm < scale * 1.34;
+  const compactPalm = palmToWrist < scale * 1.18;
+
+  return curled >= 2 && looseThumb && compactPalm;
+}
+
+function updateGripState() {
+  if (!landmarks) {
+    gripPoseActive = false;
+    gripReadyLatched = false;
+    gripHoldStart = 0;
+    return;
+  }
+
+  const gripNow = isGripPose(landmarks);
+  gripPoseActive = gripNow;
+
+  if (gripNow) {
+    if (!gripHoldStart) gripHoldStart = Date.now();
+    if (!gripReadyLatched && Date.now() - gripHoldStart > 260) {
+      gripReadyLatched = true;
+      if (waitingGripStart) {
+        waitingGripStart = false;
+        if (gameState === 'tutorial') launchTutorialShuttle();
+        else if (gameState === 'playing' && !SH.active) launchShuttle();
+      }
+    }
+  } else {
+    gripHoldStart = 0;
+    gripReadyLatched = false;
+  }
+}
+
+function waitForGripStart(context='tutorial') {
+  waitingGripStart = true;
+  gripReadyLatched = false;
+  gripHoldStart = 0;
+  SH.active = false;
+  SH.trail = [];
+  snapPow = 0;
+
+  if (context === 'tutorial') {
+    setStatus('라켓을 움켜잡은 손 모양을 만들면 시작돼요');
+    showCoachMessage('라켓 잡은 느낌만 나게 손을 쥐어주세요', 'info', 1100);
+  } else {
+    setStatus('라켓 잡은 느낌만 나도 본게임이 시작됩니다');
+    showCoachMessage('손 모양이 대충 맞아도 바로 시작할게요', 'info', 1200);
+  }
+}
+
+function getRacketPose(lm, mirroredForGame = false) {
+  if (!lm) return null;
+
+  const mapPoint = (p) => ({
+    x: (mirroredForGame ? (1 - p.x) : p.x) * W,
+    y: p.y * H
+  });
+
+  const wrist = mapPoint(lm[0]);
+  const palm  = mapPoint(lm[9]);
+  const index = mapPoint(lm[5]);
+  const pinky = mapPoint(lm[17]);
+
+  let ax = palm.x - wrist.x;
+  let ay = palm.y - wrist.y;
+  const amag = Math.hypot(ax, ay) || 1;
+  ax /= amag; ay /= amag;
+
+  let px = index.x - pinky.x;
+  let py = index.y - pinky.y;
+  const pmag = Math.hypot(px, py) || 1;
+  px /= pmag; py /= pmag;
+
+  const grip = {
+    x: wrist.x * 0.42 + palm.x * 0.58,
+    y: wrist.y * 0.42 + palm.y * 0.58,
+  };
+
+  const handleEnd = { x: grip.x - ax * 36, y: grip.y - ay * 36 };
+  const shaftEnd  = { x: grip.x + ax * 102, y: grip.y + ay * 102 };
+  const headCenter = { x: shaftEnd.x + ax * 34, y: shaftEnd.y + ay * 34 };
+  const headTip    = { x: headCenter.x + ax * 26, y: headCenter.y + ay * 26 };
+
+  return {
+    wrist, palm, index, pinky, grip, handleEnd, shaftEnd, headCenter, headTip,
+    axis: { x: ax, y: ay },
+    perp: { x: px, y: py },
+    angle: Math.atan2(ay, ax)
+  };
+}
+
+function updateSnap(wrist) {
+  if (!gripPoseActive) { snapPow *= 0.72; wristHist = []; return; }
+
+  const now = Date.now();
+  wristHist.push({ x: wrist.x, y: wrist.y, t: now });
+  wristHist = wristHist.filter(p => now - p.t < 260);
+  if (wristHist.length < 3) { snapPow *= 0.84; return; }
+
+  const recent = wristHist.filter(p => now - p.t < 120);
+  if (recent.length < 2) { snapPow *= 0.84; return; }
+
+  const a = recent[0], b = recent[recent.length - 1];
+  const dx = (b.x - a.x) * W;
+  const dy = (b.y - a.y) * H;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const dt   = Math.max((b.t - a.t) / 1000, 0.01);
+  const spd  = dist / dt;
+  const wristForward = dy > 6 || Math.abs(dx) > 8;
+
+  const raw = Math.max(0, spd - 55) / 340;
+  if (wristForward && spd > 68) {
+    snapPow = Math.min(1, Math.max(raw, 0.62));
+  } else {
+    snapPow *= 0.86;
+  }
+}
+
+// Check if hand is close enough to shuttle + snap active
+function tryHit() {
+  if (!landmarks || !gripPoseActive || !SH.active || !SH.onPlayer) return false;
+
+  const racket = getRacketPose(landmarks, true);
+  if (!racket) return false;
+
+  const sp = getShuttleScreenPos();
+  const headDist = Math.hypot(racket.headCenter.x - sp.x, racket.headCenter.y - sp.y);
+  const tipDist  = Math.hypot(racket.headTip.x - sp.x, racket.headTip.y - sp.y);
+  const palmDist = Math.hypot(racket.palm.x - sp.x, racket.palm.y - sp.y);
+  const shaftDist = Math.hypot(racket.shaftEnd.x - sp.x, racket.shaftEnd.y - sp.y);
+  const hitR = 72 + SH.v * 34;
+
+  return (
+    headDist < hitR ||
+    tipDist < hitR + 26 ||
+    shaftDist < hitR + 18 ||
+    palmDist < hitR + 18
+  ) && snapPow > 0.10;
+}
+
+// ── Main Game Loop ────────────────────────────────────
+let raf = null;
+
+function resetRunState() {
+  clearTimeout(tutorialTimer);
+  clearTimeout(transitionTimer);
+  clearTimeout(feedbackTimer);
+  clearTimeout(countdownTimer);
+  clearTimeout(impactFlashTimer);
+
+  if (raf) {
+    cancelAnimationFrame(raf);
+    raf = null;
+  }
+
+  score = 0;
+  combo = 0;
+  currentSpeedLevel = 1;
+  snapPow = 0;
+  snapFired = false;
+  wristHist = [];
+  tutorialIndex = 0;
+  waitingGripStart = false;
+  gripReadyLatched = false;
+  gripHoldStart = 0;
+
+  SH.u = 0.5;
+  SH.v = 0.0;
+  SH.su = 0;
+  SH.sv = 0;
+  SH.active = false;
+  SH.onPlayer = false;
+  SH.trail = [];
+
+  const cdEl = document.getElementById('countdown');
+  cdEl.style.display = 'none';
+  cdEl.textContent = '';
+
+  document.getElementById('tutorial-overlay').classList.remove('show');
+  document.getElementById('coach-msg').classList.remove('show','good','bad','info');
+  document.getElementById('miss-flash').style.background = 'transparent';
+  document.getElementById('score-pop').style.opacity = '0';
+  updateHUD();
+  updateSnapUI();
+}
+
+function setStatus(msg) {
+  document.getElementById('status-msg').textContent = msg;
+}
+function showCoachMessage(msg, type='info', duration=900) {
+  const el = document.getElementById('coach-msg');
+  el.textContent = msg;
+  el.className = '';
+  el.offsetWidth;
+  el.classList.add('show', type);
+  clearTimeout(feedbackTimer);
+  feedbackTimer = setTimeout(() => el.classList.remove('show','good','bad','info'), duration);
+}
+function updateTutorialPanel() {
+  const overlay = document.getElementById('tutorial-overlay');
+  const step = tutorialSteps[tutorialIndex];
+  overlay.classList.add('show');
+  document.getElementById('tutorial-step-title').textContent = step.title;
+  document.getElementById('tutorial-step-desc').textContent = step.desc;
+  for (let i = 0; i < tutorialSteps.length; i++) {
+    document.getElementById('td' + i).classList.toggle('on', i <= tutorialIndex);
+  }
+}
+function triggerImpact(x, y) {
+  const ring = document.getElementById('impact-ring');
+  ring.style.left = x + 'px';
+  ring.style.top = y + 'px';
+  ring.classList.remove('show');
+  ring.offsetWidth;
+  ring.classList.add('show');
+  const mf = document.getElementById('miss-flash');
+  mf.style.background = 'rgba(245,230,66,0.12)';
+  clearTimeout(impactFlashTimer);
+  impactFlashTimer = setTimeout(() => { mf.style.background = 'transparent'; }, 90);
+  GC.style.transform = 'translate(0,0)';
+  GC.animate([
+    { transform:'translate(0px,0px)' },
+    { transform:'translate(-5px,1px)' },
+    { transform:'translate(4px,-2px)' },
+    { transform:'translate(-2px,2px)' },
+    { transform:'translate(0px,0px)' }
+  ], { duration:180, easing:'ease-out' });
+}
+function startTutorial() {
+  clearTimeout(tutorialTimer); clearTimeout(transitionTimer);
+  tutorialIndex = 0;
+  waitingGripStart = false;
+  updateHUD();
+  document.getElementById('tutorial-overlay').classList.add('show');
+  updateTutorialPanel();
+  gameState = 'tutorial';
+  setStatus('튜토리얼: 라켓 잡은 느낌으로 손을 쥐어주세요');
+  showCoachMessage('좋아요, 손 모양은 너무 정확하지 않아도 돼요', 'info', 1200);
+  tutorialTimer = setTimeout(() => waitForGripStart('tutorial'), 700);
+  if (!raf) gameLoop();
+}
+function launchTutorialShuttle() {
+  if (gameState !== 'tutorial') return;
+  waitingGripStart = false;
+  const step = tutorialSteps[tutorialIndex];
+  SH.u = 0.34 + Math.random() * 0.32;
+  SH.v = 0.02;
+  SH.su = (0.5 - SH.u) * 0.004 + (Math.random() - 0.5) * 0.0016;
+  SH.sv = step.speed * 0.92;
+  SH.arcPeak = 78;
+  SH.onPlayer = false;
+  SH.active = true;
+  SH.trail = [];
+}
+function finishTutorialAndStartGame() {
+  document.getElementById('tutorial-overlay').classList.remove('show');
+  gameState = 'transition';
+  SH.active = false; SH.trail = [];
+  setStatus('이제 본게임을 시작합니다');
+  showCoachMessage('이제 게임을 시작해보겠습니다', 'info', 1200);
+  transitionTimer = setTimeout(() => {
+    gameState = 'playing';
+    waitForGripStart('game');
+    if (!raf) gameLoop();
+  }, 1250);
+}
+
+function gameLoop() {
+  if (!['tutorial','transition','playing'].includes(gameState)) return;
+  if ((gameState === 'tutorial' || gameState === 'playing') && !waitingGripStart) updateShuttle();
+  renderFrame();
+  updateSnapUI();
+  raf = requestAnimationFrame(gameLoop);
+}
+
+function updateShuttle() {
+  if (!SH.active) {
+    if (waitingGripStart) return;
+    launchShuttle();
+    return;
+  }
+
+  // Gravity — keep the shuttle floating longer, then let it drop near the player
+  const gravScale = 0.11 + SH.v * 0.72;
+  SH.sv += 0.00007 * gravScale;
+  SH.u  += SH.su;
+  SH.v  += SH.sv;
+
+  SH.trail.push({ u: SH.u, v: SH.v });
+  if (SH.trail.length > 24) SH.trail.shift();
+
+  // Crossed net?
+  if (!SH.onPlayer && SH.v > V_NET) {
+    SH.onPlayer = true;
+  }
+
+  // Hit?
+  if (SH.onPlayer && tryHit()) {
+    doHit();
+    return;
+  }
+
+  // ── Miss conditions ──
+  // 1. Went past near baseline (player missed)
+  if (SH.v > 1.08 && SH.onPlayer) {
+    if (gameState === 'tutorial') {
+      tutorialMiss();
+    } else {
+      doMiss();
+    }
+    return;
+  }
+  // 2. Hit the floor before crossing net (serve failed — just re-serve)
+  if (SH.v > 1.12 && !SH.onPlayer) {
+    launchShuttle();
+    return;
+  }
+  // 3. Way out of bounds horizontally — re-serve
+  if (SH.u < -0.15 || SH.u > 1.15) {
+    if (SH.onPlayer) doMiss();
+    else launchShuttle();
+  }
+}
+
+function tutorialMiss() {
+  SH.active = false;
+  snapPow = 0;
+  combo = 0;
+  updateHUD();
+  setStatus('놓쳤어요! 라켓을 잡은 손을 유지하고 다시 해볼게요');
+  showCoachMessage('놓쳤어요!', 'bad', 850);
+  tutorialTimer = setTimeout(() => {
+    if (gameState === 'tutorial') waitForGripStart('tutorial');
+  }, 650);
+}
+
+function doHit() {
+  const sp = getShuttleScreenPos();
+  triggerImpact(sp.x, sp.y);
+  snapFired = true;
+  setTimeout(() => { snapFired = false; }, 400);
+
+  if (gameState === 'tutorial') {
+    SH.active = false;
+    snapPow = 0;
+    showCoachMessage('좋아요!', 'good', 800);
+    tutorialIndex++;
+    if (tutorialIndex < tutorialSteps.length) {
+      updateTutorialPanel();
+      setStatus('좋아요! 다음 단계로 넘어가요');
+      tutorialTimer = setTimeout(() => {
+        if (gameState === 'tutorial') waitForGripStart('tutorial');
+      }, 700);
+    } else {
+      setStatus('튜토리얼 완료!');
+      finishTutorialAndStartGame();
+    }
+    return;
+  }
+
+  score++;
+  combo++;
+  updateHUD();
+  showScorePop();
+  if (score > 0 && score % 3 === 0) {
+    setStatus(`속도 UP! 현재 ${currentSpeedLevel}단계`);
+  }
+
+  // Rebound: shoot back over the net
+  SH.su      =  (0.5 - SH.u) * 0.010 + (Math.random() - 0.5) * 0.010;
+  SH.sv      = -(0.015 + Math.random() * 0.008);
+  SH.onPlayer = false;
+
+  // Re-serve from opponent after it clears
+  setTimeout(() => {
+    if (gameState === 'playing') launchShuttle();
+  }, 1400);
+  SH.active = false;
+}
+
+function doMiss() {
+  SH.active = false;
+  lastScore = score;
+  gameState = 'gameover';
+  setStatus('놓쳤어요! 하나라도 놓치면 바로 게임 종료');
+  showCoachMessage('놓쳤어요!', 'bad', 900);
+
+  // Red flash
+  const mf = document.getElementById('miss-flash');
+  mf.style.background = 'rgba(200,20,20,0.5)';
+  setTimeout(() => { mf.style.background = 'transparent'; }, 250);
+
+  cancelAnimationFrame(raf);
+  raf = null;
+  setTimeout(showGameOver, 350);
+}
+
+// ── Rendering ─────────────────────────────────────────
+function renderFrame() {
+  g.clearRect(0, 0, W, H);
+  drawCeiling();
+  drawWall();
+  drawFloor();
+  drawCourtLines();
+  drawNet();
+  drawShuttle();
+}
+
+// Also draw a static frame on start screen
+function drawStaticCourt() {
+  g.clearRect(0, 0, W, H);
+  drawCeiling();
+  drawWall();
+  drawFloor();
+  drawCourtLines();
+  drawNet();
+}
+
+// ─ CEILING ─
+function drawCeiling() {
+  const ceilBot = VPY() * 0.55;
+  const cg = g.createLinearGradient(0, 0, 0, ceilBot);
+  cg.addColorStop(0, '#1c1810');
+  cg.addColorStop(1, '#141210');
+  g.fillStyle = cg;
+  g.fillRect(0, 0, W, ceilBot);
+
+  // Slats
+  g.strokeStyle = 'rgba(90,65,28,0.32)';
+  g.lineWidth = 1.3;
+  const nSlats = 22;
+  for (let i = 0; i <= nSlats; i++) {
+    const x = (i / nSlats) * W;
+    g.beginPath(); g.moveTo(x, 0); g.lineTo(x, ceilBot); g.stroke();
+  }
+
+  // Ceiling lights
+  for (const lxF of [0.25, 0.50, 0.75]) {
+    const cx = lxF * W, cy = ceilBot * 0.50;
+    const halo = g.createRadialGradient(cx, cy, 4, cx, cy, 100);
+    halo.addColorStop(0,   'rgba(255,245,200,0.30)');
+    halo.addColorStop(0.5, 'rgba(255,245,200,0.10)');
+    halo.addColorStop(1,   'transparent');
+    g.fillStyle = halo;
+    g.beginPath(); g.arc(cx, cy, 100, 0, Math.PI * 2); g.fill();
+    // fixture
+    g.fillStyle = '#ddd8b8'; g.beginPath(); g.arc(cx, cy, 15, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#fffce0'; g.beginPath(); g.arc(cx, cy,  8, 0, Math.PI * 2); g.fill();
+  }
+}
+
+// ─ BACK WALL ─
+function drawWall() {
+  const ceilBot = VPY() * 0.55;
+  g.fillStyle = '#bcb9ae';
+  g.fillRect(0, ceilBot, W, VPY() - ceilBot + 24);
+
+  // Side shadows
+  const sl = g.createLinearGradient(0, 0, W * 0.20, 0);
+  sl.addColorStop(0, 'rgba(0,0,0,0.32)');
+  sl.addColorStop(1, 'transparent');
+  g.fillStyle = sl; g.fillRect(0, ceilBot, W * 0.20, VPY() - ceilBot + 24);
+
+  const sr = g.createLinearGradient(W * 0.80, 0, W, 0);
+  sr.addColorStop(0, 'transparent');
+  sr.addColorStop(1, 'rgba(0,0,0,0.32)');
+  g.fillStyle = sr; g.fillRect(W * 0.80, ceilBot, W * 0.20, VPY() - ceilBot + 24);
+
+  // Chair row
+  const chairY = VPY() + 8;
+  g.fillStyle = 'rgba(48,44,36,0.65)';
+  const nc = 14;
+  for (let i = 0; i < nc; i++) {
+    const cx = W * 0.10 + i * (W * 0.80 / (nc - 1));
+    g.fillRect(cx - 10, chairY - 24, 20, 12);  // back
+    g.fillRect(cx - 10, chairY - 12, 20,  8);  // seat
+    g.fillRect(cx -  8, chairY - 4,   4,  9);  // legs
+    g.fillRect(cx +  4, chairY - 4,   4,  9);
+  }
+  // Spectators
+  drawSilhouette(W * 0.36, chairY - 42, 13, 28);
+  drawSilhouette(W * 0.42, chairY - 38, 11, 25);
+}
+
+function drawSilhouette(cx, cy, rH, bH) {
+  g.fillStyle = 'rgba(35,30,22,0.70)';
+  g.beginPath(); g.arc(cx, cy, rH, 0, Math.PI * 2); g.fill();
+  g.fillRect(cx - rH * 0.7, cy + rH * 0.8, rH * 1.4, bH);
+}
+
+// ─ FLOOR ─
+function drawFloor() {
+  const nearY = H * NEAR_Y_F;
+  const vpy   = VPY();
+
+  // Base wooden color
+  const fg = g.createLinearGradient(0, vpy, 0, nearY);
+  fg.addColorStop(0,   '#b89048');
+  fg.addColorStop(0.4, '#cca850');
+  fg.addColorStop(1,   '#a88040');
+  g.fillStyle = fg;
+  g.fillRect(0, vpy, W, nearY - vpy);
+
+  // Plank lines
+  g.strokeStyle = 'rgba(120,84,24,0.20)';
+  g.lineWidth = 1;
+  const nPlanks = 28;
+  for (let i = 1; i < nPlanks; i++) {
+    const t  = i / nPlanks;
+    const py = vpy + (nearY - vpy) * t;
+    g.beginPath(); g.moveTo(0, py); g.lineTo(W, py); g.stroke();
+  }
+
+  // Sheen near top of floor (fresnel)
+  const sh = g.createLinearGradient(0, vpy, 0, vpy + (nearY - vpy) * 0.50);
+  sh.addColorStop(0, 'rgba(255,250,200,0.22)');
+  sh.addColorStop(1, 'transparent');
+  g.fillStyle = sh;
+  g.fillRect(0, vpy, W, (nearY - vpy) * 0.50);
+
+  // Light cones on floor
+  for (const lxF of [0.25, 0.50, 0.75]) {
+    const cx = lxF * W;
+    const midY = vpy + (nearY - vpy) * 0.30;
+    const cone = g.createRadialGradient(cx, midY, 15, cx, midY, 260);
+    cone.addColorStop(0, 'rgba(255,245,180,0.12)');
+    cone.addColorStop(1, 'transparent');
+    g.fillStyle = cone;
+    g.fillRect(0, vpy, W, nearY - vpy);
+  }
+}
+
+// ─ COURT LINES ─
+function drawCourtLines() {
+  function cline(u1, v1, u2, v2, col, lw) {
+    const a = proj(u1, v1), b = proj(u2, v2);
+    g.strokeStyle = col || 'rgba(55,120,210,0.88)';
+    g.lineWidth   = lw  || 2.0;
+    g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
+  }
+
+  const B  = 'rgba(55,120,210,0.90)';
+  const B2 = 'rgba(55,120,210,0.50)';
+
+  // Baselines
+  cline(0.02, 0.01, 0.98, 0.01, B, 2.0);   // far
+  cline(0.02, 0.97, 0.98, 0.97, B, 2.5);   // near
+
+  // Singles sidelines
+  cline(0.10, 0.01, 0.10, 0.97, B, 2.0);
+  cline(0.90, 0.01, 0.90, 0.97, B, 2.0);
+
+  // Doubles sidelines (outer)
+  cline(0.02, 0.01, 0.02, 0.97, B2, 1.5);
+  cline(0.98, 0.01, 0.98, 0.97, B2, 1.5);
+
+  // Short service lines
+  cline(0.10, V_NET - 0.13, 0.90, V_NET - 0.13, B);  // far side
+  cline(0.10, V_NET + 0.13, 0.90, V_NET + 0.13, B);  // near side
+
+  // Center service line
+  cline(0.50, V_NET - 0.13, 0.50, V_NET + 0.13, B);
+
+  // Center marks
+  cline(0.50, 0.01, 0.50, 0.055, B2, 1.5);
+  cline(0.50, 0.91, 0.50, 0.97,  B2, 1.5);
+}
+
+// ─ NET ─
+function drawNet() {
+  // Net sits at V_NET in court-space
+  // Visually: top wire at horizon level, bottom wire on floor at V_NET depth
+  const pNetTopL = proj(0.03, V_NET);
+  const pNetTopR = proj(0.97, V_NET);
+
+  // Net top wire y = slightly above VPY so it's clearly visible
+  const netTopY = VPY() - 4;
+  // Net bottom: project V_NET depth onto floor
+  const netBotY = pNetTopL.y + 50;  // the proj y is approx where net meets floor at that depth
+
+  const nL = pNetTopL.x;
+  const nR = pNetTopR.x;
+
+  // ── Post shadows ──
+  g.strokeStyle = 'rgba(0,0,0,0.30)';
+  g.lineWidth = 12;
+  g.beginPath(); g.moveTo(nL + 6, netTopY - 10); g.lineTo(nL + 6, netBotY + 12); g.stroke();
+  g.beginPath(); g.moveTo(nR + 6, netTopY - 10); g.lineTo(nR + 6, netBotY + 12); g.stroke();
+
+  // ── Posts ──
+  g.strokeStyle = '#b09868';
+  g.lineWidth = 10;
+  g.lineCap = 'round';
+  g.beginPath(); g.moveTo(nL, netTopY - 12); g.lineTo(nL, netBotY + 10); g.stroke();
+  g.beginPath(); g.moveTo(nR, netTopY - 12); g.lineTo(nR, netBotY + 10); g.stroke();
+  g.lineCap = 'butt';
+
+  // ── Net mesh ──
+  const cols = 36, rows = 18;
+
+  // Horizontal strands
+  g.strokeStyle = 'rgba(230,225,210,0.70)';
+  g.lineWidth = 1.2;
+  for (let r = 0; r <= rows; r++) {
+    const t  = r / rows;
+    const y  = netTopY + (netBotY - netTopY) * t;
+    // slight perspective squish on width (net is trapezoid)
+    const squeeze = t * 0;   // keep it simple: no horizontal squish
+    g.beginPath(); g.moveTo(nL, y); g.lineTo(nR, y); g.stroke();
+  }
+
+  // Vertical strands
+  g.strokeStyle = 'rgba(230,225,210,0.55)';
+  g.lineWidth = 1.0;
+  for (let c = 0; c <= cols; c++) {
+    const t  = c / cols;
+    const x  = nL + (nR - nL) * t;
+    g.beginPath(); g.moveTo(x, netTopY); g.lineTo(x, netBotY); g.stroke();
+  }
+
+  // ── White tape (top band) ──
+  const tapeH = 12;
+  g.fillStyle = '#f2eedc';
+  g.fillRect(nL, netTopY - 5, nR - nL, tapeH);
+  // Tape gloss
+  const ts = g.createLinearGradient(0, netTopY - 5, 0, netTopY + tapeH);
+  ts.addColorStop(0, 'rgba(255,255,255,0.45)');
+  ts.addColorStop(1, 'transparent');
+  g.fillStyle = ts;
+  g.fillRect(nL, netTopY - 5, nR - nL, tapeH);
+
+  // ── Net background tint (so mesh reads against wall) ──
+  const nb = g.createLinearGradient(0, netTopY, 0, netBotY);
+  nb.addColorStop(0, 'rgba(20,30,20,0.35)');
+  nb.addColorStop(1, 'rgba(0,0,0,0.10)');
+  g.fillStyle = nb;
+  g.fillRect(nL + 2, netTopY, nR - nL - 4, netBotY - netTopY);
+
+  // ── Shadow under net on floor ──
+  const sh = g.createLinearGradient(0, netBotY, 0, netBotY + 30);
+  sh.addColorStop(0, 'rgba(0,0,0,0.28)');
+  sh.addColorStop(1, 'transparent');
+  g.fillStyle = sh;
+  g.fillRect(nL, netBotY, nR - nL, 30);
+}
+
+// ─ SHUTTLE ─
+function drawShuttle() {
+  if (!SH.active) return;
+
+  const sp = getShuttleScreenPos();
+  // Radius grows as shuttle approaches (v=0 tiny, v=1 large)
+  const r = 6 + SH.v * 20;
+
+  // Trail
+  for (let i = 0; i < SH.trail.length; i++) {
+    const tp    = getShuttleScreenPos(SH.trail[i].u, SH.trail[i].v);
+    const alpha = (i / SH.trail.length) * 0.38;
+    const tr    = Math.max(1, r * (i / SH.trail.length) * 0.5);
+    g.beginPath(); g.arc(tp.x, tp.y, tr, 0, Math.PI * 2);
+    g.fillStyle = `rgba(255,255,255,${alpha})`; g.fill();
+  }
+
+  // Feather direction (toward previous point)
+  let ang = -Math.PI * 0.5; // default: up
+  if (SH.trail.length > 1) {
+    const prev = proj(SH.trail[SH.trail.length - 2].u, SH.trail[SH.trail.length - 2].v);
+    ang = Math.atan2(prev.y - sp.y, prev.x - sp.x);
+  }
+
+  // Feathers
+  g.strokeStyle = 'rgba(255,255,255,0.80)';
+  g.lineWidth = 1.6;
+  for (let i = -2; i <= 2; i++) {
+    const a = ang + i * 0.20;
+    g.beginPath();
+    g.moveTo(sp.x + Math.cos(ang) * r * 0.55,
+             sp.y + Math.sin(ang) * r * 0.55);
+    g.lineTo(sp.x + Math.cos(a) * (r + 18),
+             sp.y + Math.sin(a) * (r + 18));
+    g.stroke();
+  }
+
+  // Cork (main body)
+  const cg = g.createRadialGradient(sp.x - r * 0.28, sp.y - r * 0.28, 1, sp.x, sp.y, r);
+  cg.addColorStop(0, '#ffffff');
+  cg.addColorStop(1, '#d8b870');
+  g.beginPath(); g.arc(sp.x, sp.y, r, 0, Math.PI * 2);
+  g.fillStyle = cg; g.fill();
+
+  // Glow when on player side (warning to hit!)
+  if (SH.onPlayer) {
+    const gg = g.createRadialGradient(sp.x, sp.y, r * 0.8, sp.x, sp.y, r + 28);
+    gg.addColorStop(0, 'rgba(245,230,66,0.50)');
+    gg.addColorStop(1, 'transparent');
+    g.beginPath(); g.arc(sp.x, sp.y, r + 28, 0, Math.PI * 2);
+    g.fillStyle = gg; g.fill();
+  }
+}
+
+// ── Hand overlay ─────────────────────────────────────
+const CONNS = [
+  [0,1],[1,2],[2,3],[3,4],
+  [0,5],[5,6],[6,7],[7,8],
+  [0,9],[9,10],[10,11],[11,12],
+  [0,13],[13,14],[14,15],[15,16],
+  [0,17],[17,18],[18,19],[19,20],
+  [5,9],[9,13],[13,17],
+];
+
+function drawHand(lm) {
+  h.clearRect(0, 0, W, H);
+  if (!lm) return;
+
+  const mp = (i) => ({ x: lm[i].x * W, y: lm[i].y * H });
+  const racket = getRacketPose(lm, false);
+
+  if (racket) {
+    h.save();
+    h.lineCap = 'round';
+
+    // handle
+    h.beginPath();
+    h.moveTo(racket.handleEnd.x, racket.handleEnd.y);
+    h.lineTo(racket.grip.x, racket.grip.y);
+    h.strokeStyle = 'rgba(122, 78, 28, 0.98)';
+    h.lineWidth = 16;
+    h.stroke();
+
+    // grip tape
+    h.beginPath();
+    h.moveTo(racket.handleEnd.x + racket.axis.x * 8, racket.handleEnd.y + racket.axis.y * 8);
+    h.lineTo(racket.grip.x - racket.axis.x * 6, racket.grip.y - racket.axis.y * 6);
+    h.strokeStyle = 'rgba(50,30,12,0.96)';
+    h.lineWidth = 11;
+    h.stroke();
+
+    // shaft
+    h.beginPath();
+    h.moveTo(racket.grip.x, racket.grip.y);
+    h.lineTo(racket.shaftEnd.x, racket.shaftEnd.y);
+    h.strokeStyle = snapFired ? '#f5e642' : 'rgba(240,240,240,0.95)';
+    h.lineWidth = 6;
+    h.stroke();
+
+    // racket head
+    h.save();
+    h.translate(racket.headCenter.x, racket.headCenter.y);
+    h.rotate(racket.angle + Math.PI / 2);
+
+    h.beginPath();
+    h.ellipse(0, 0, 36, 52, 0, 0, Math.PI * 2);
+    h.strokeStyle = snapFired ? '#f5e642' : 'rgba(225,225,225,0.98)';
+    h.lineWidth = 6;
+    h.stroke();
+
+    h.strokeStyle = 'rgba(255,255,255,0.35)';
+    h.lineWidth = 1.25;
+    for (let yy = -28; yy <= 28; yy += 9) {
+      h.beginPath();
+      h.moveTo(-24, yy);
+      h.lineTo(24, yy);
+      h.stroke();
+    }
+    for (let xx = -18; xx <= 18; xx += 6) {
+      h.beginPath();
+      h.moveTo(xx, -38);
+      h.lineTo(xx, 38);
+      h.stroke();
+    }
+    h.restore();
+
+    // fist overlay around the grip
+    const skin = gripPoseActive ? 'rgba(255,226,176,0.96)' : 'rgba(255,226,176,0.82)';
+    const gripKnuckles = [mp(5), mp(9), mp(13), mp(17)];
+    h.fillStyle = skin;
+    for (const p of gripKnuckles) {
+      h.beginPath();
+      h.arc(p.x, p.y, 10, 0, Math.PI * 2);
+      h.fill();
+    }
+    h.beginPath();
+    h.arc(racket.grip.x, racket.grip.y, 16, 0, Math.PI * 2);
+    h.fillStyle = 'rgba(255,220,160,0.78)';
+    h.fill();
+  }
+
+  const handLine = gripPoseActive ? 'rgba(255,228,186,0.88)' : 'rgba(109,218,74,0.50)';
+  const handDot = gripPoseActive ? '#ffe8ba' : 'rgba(109,218,74,0.82)';
+  h.strokeStyle = handLine;
+  h.lineWidth   = gripPoseActive ? 3.0 : 2.2;
+  for (const [a, b] of CONNS) {
+    h.beginPath();
+    h.moveTo(lm[a].x * W, lm[a].y * H);
+    h.lineTo(lm[b].x * W, lm[b].y * H);
+    h.stroke();
+  }
+  for (let i = 0; i < lm.length; i++) {
+    h.beginPath();
+    h.arc(lm[i].x * W, lm[i].y * H, i === 0 ? 10 : (gripPoseActive ? 5.3 : 4.5), 0, Math.PI * 2);
+    h.fillStyle = i === 0 ? '#f5e642' : handDot;
+    h.fill();
+  }
+
+  if (snapPow > 0.06) {
+    const w0 = lm[0];
+    h.beginPath();
+    h.arc(w0.x * W, w0.y * H, 30,
+          -Math.PI / 2,
+          -Math.PI / 2 + Math.PI * 2 * snapPow);
+    h.strokeStyle = snapFired ? '#f5e642' : `rgba(109,218,74,${0.5 + snapPow * 0.5})`;
+    h.lineWidth   = 4.8;
+    h.stroke();
+  }
+}
+
+// ── Snap UI ──────────────────────────────────────────
+function updateSnapUI() {
+  const lvls = [0.10, 0.26, 0.43, 0.62, 0.82];
+  for (let i = 0; i < 5; i++) {
+    const d = document.getElementById('sd' + i);
+    d.className = 'sdot' + (snapFired ? ' max' : snapPow >= lvls[i] ? ' on' : '');
+  }
+}
+
+// ── HUD ──────────────────────────────────────────────
+function updateHUD() {
+  document.getElementById('score-val').textContent = score;
+  document.getElementById('best-val').textContent  = bestScore;
+  document.getElementById('speed-val').textContent = currentSpeedLevel;
+  const cp = document.getElementById('combo-pill');
+  if (combo >= 3) {
+    cp.style.display = '';
+    document.getElementById('combo-num').textContent = combo;
+  } else {
+    cp.style.display = 'none';
+  }
+}
+
+let popTimer = null;
+function showScorePop() {
+  const sp  = getShuttleScreenPos();
+  const el  = document.getElementById('score-pop');
+  el.textContent   = combo >= 5 ? `+${combo} 🔥` : '+1';
+  el.style.left    = (sp.x - 32) + 'px';
+  el.style.top     = (sp.y - 52) + 'px';
+  el.style.opacity = '1';
+  el.style.transform = 'scale(1.25) translateY(0)';
+  clearTimeout(popTimer);
+  popTimer = setTimeout(() => {
+    el.style.opacity   = '0';
+    el.style.transform = 'scale(0.9) translateY(-28px)';
+  }, 680);
+}
+
+// ── Screen management ─────────────────────────────────
+function showStart() {
+  resetRunState();
+  gameState = 'start';
+  document.getElementById('start-screen').classList.remove('hidden');
+  document.getElementById('ranking-screen').classList.add('hidden');
+  document.getElementById('gameover-screen').classList.add('hidden');
+  setStatus('손을 카메라에 보여주세요');
+  drawStaticCourt();
+}
+
+function showRanking() {
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('ranking-screen').classList.remove('hidden');
+  renderRanking();
+}
+
+function showGameOver() {
+  clearTimeout(countdownTimer);
+  document.getElementById('countdown').style.display = 'none';
+  document.getElementById('gameover-screen').classList.remove('hidden');
+  const em = document.getElementById('go-emoji');
+  const ti = document.getElementById('go-title');
+  const de = document.getElementById('go-desc');
+  if (lastScore === 0) {
+    em.textContent = '😢'; ti.textContent = '아쉬워요!';
+    de.textContent = '셔틀콕을 한 번도 못 쳤어요.\n손목 스냅을 더 빠르게!';
+  } else if (lastScore >= 20) {
+    em.textContent = '🏆'; ti.textContent = 'CHAMPION!';
+    de.textContent = `${lastScore}점! 진짜 배드민턴 고수시네요!`;
+  } else {
+    em.textContent = '🏸'; ti.textContent = 'GAME OVER';
+    de.textContent = `최종 점수: ${lastScore}점\n더 연습하면 더 잘할 수 있어요!`;
+  }
+  document.getElementById('go-reg').style.display = lastScore > 0 ? '' : 'none';
+}
+
+function startGame() {
+  resetRunState();
+  playerName = document.getElementById('pname').value.trim() || '플레이어';
+  gameState = 'transition';
+
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('ranking-screen').classList.add('hidden');
+  document.getElementById('gameover-screen').classList.add('hidden');
+
+  const cdEl = document.getElementById('countdown');
+  let cd = 2;
+  function tick() {
+    if (gameState !== 'transition') return;
+
+    if (cd > 0) {
+      cdEl.style.display = 'flex';
+      cdEl.textContent = cd;
+      cd--;
+      countdownTimer = setTimeout(tick, 650);
+    } else {
+      cdEl.style.display = 'none';
+      cdEl.textContent = '';
+      startTutorial();
+    }
+  }
+  tick();
+}
+
+// ── Ranking ───────────────────────────────────────────
+function loadRanking() {
+  try { return JSON.parse(localStorage.getItem('bsm3_rank_backup') || '[]'); }
+  catch { return []; }
+}
+function saveRanking(d) {
+  localStorage.setItem('bsm3_rank_backup', JSON.stringify(d));
+}
+
+async function fetchRankingFromSheet() {
+  const res = await fetch(API_URL, { method: 'GET', cache: 'no-store' });
+  if (!res.ok) throw new Error(`Ranking fetch failed: ${res.status}`);
+  const data = await res.json();
+  if (!Array.isArray(data)) return [];
+
+  return data
+    .map(row => ({
+      name: String(row.name || '플레이어').slice(0, 12),
+      score: Number(row.score) || 0,
+      date: row.date || ''
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+}
+
+async function submitScoreToSheet(name, scoreValue) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ name, score: scoreValue })
+  });
+  if (!res.ok) throw new Error(`Score submit failed: ${res.status}`);
+  return res.json().catch(() => ({ status: 'success' }));
+}
+
+async function refreshBestScore() {
+  try {
+    const remote = await fetchRankingFromSheet();
+    bestScore = remote[0]?.score || 0;
+  } catch (err) {
+    const backup = loadRanking();
+    bestScore = backup[0]?.score || 0;
+    console.warn('Failed to refresh remote best score:', err);
+  }
+  updateHUD();
+}
+
+async function registerScore() {
+  const entry = { name: playerName, score: lastScore, date: new Date().toLocaleDateString('ko-KR') };
+
+  const backup = loadRanking();
+  backup.push(entry);
+  backup.sort((a, b) => b.score - a.score);
+  backup.splice(10);
+  saveRanking(backup);
+
+  const btn = document.getElementById('go-reg');
+  btn.disabled = true;
+  btn.textContent = '등록 중...';
+
+  try {
+    await submitScoreToSheet(playerName, lastScore);
+    await refreshBestScore();
+    btn.style.display = 'none';
+    showRanking();
+    document.getElementById('gameover-screen').classList.add('hidden');
+  } catch (err) {
+    console.warn('Failed to submit score:', err);
+    bestScore = Math.max(bestScore, backup[0]?.score || 0);
+    updateHUD();
+    btn.disabled = false;
+    btn.textContent = '🏆 랭킹 등록';
+    setStatus('시트 저장에 실패했어요. 잠시 후 다시 시도해주세요.');
+    showCoachMessage('시트 저장 실패! 다시 한 번 눌러주세요', 'bad', 1400);
+  }
+}
+
+async function renderRanking() {
+  const tbody = document.getElementById('rank-body');
+  tbody.innerHTML = `<tr><td colspan="4" style="color:#555;text-align:center;padding:24px">랭킹 불러오는 중...</td></tr>`;
+
+  let ranking = [];
+  let usingBackup = false;
+
+  try {
+    ranking = await fetchRankingFromSheet();
+    saveRanking(ranking);
+  } catch (err) {
+    console.warn('Failed to fetch remote ranking:', err);
+    ranking = loadRanking();
+    usingBackup = true;
+  }
+
+  tbody.innerHTML = '';
+
+  if (!ranking.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="color:#444;text-align:center;padding:24px">아직 기록이 없어요!</td></tr>`;
+    return;
+  }
+
+  const medals = ['🥇', '🥈', '🥉'];
+  ranking.forEach((entry, i) => {
+    const tr = document.createElement('tr');
+    const dateText = entry.date ? new Date(entry.date).toLocaleDateString('ko-KR') : '-';
+    tr.innerHTML = `
+      <td class="rk-num">${medals[i] || (i + 1)}</td>
+      <td>${entry.name}${usingBackup && i === 0 ? ' <span style="color:#666;font-size:11px">(offline)</span>' : ''}</td>
+      <td class="rk-score">${entry.score}</td>
+      <td style="color:#555;font-size:12px">${dateText}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── MediaPipe setup ───────────────────────────────────
+async function setupCam() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+    vid.srcObject = stream;
+    await new Promise(res => { vid.onloadedmetadata = () => res(); });
+  } catch (e) {
+    document.getElementById('cam-warn').classList.remove('hidden');
+    throw e;
+  }
+}
+
+function setupHands() {
+  const hands = new Hands({
+    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+  });
+  hands.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.7,
+    minTrackingConfidence:  0.6,
+  });
+  hands.onResults(results => {
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+      landmarks = results.multiHandLandmarks[0];
+      updateGripState();
+      updateSnap(landmarks[0]);
+      drawHand(landmarks);
+
+      if (waitingGripStart) {
+        if (gripPoseActive) {
+          setStatus('좋아요! 라켓을 잡은 손 모양 확인됐어요');
+        } else {
+          setStatus('라켓 잡은 느낌으로 손을 쥐어주세요');
+        }
+      } else if (gameState === 'playing') {
+        if (!gripPoseActive) {
+          setStatus('손을 너무 정확하게 만들 필요 없어요. 가볍게 쥔 상태를 유지해주세요');
+        } else {
+          setStatus(snapPow > 0.16 ? '🔥 지금 스매시!' : '조금만 맞아도 인정해줄게요. 손목만 톡!');
+        }
+      } else if (gameState === 'tutorial') {
+        if (!gripPoseActive) {
+          setStatus('먼저 손을 가볍게 쥐어 라켓 잡은 느낌을 만들어주세요');
+        } else {
+          setStatus(snapPow > 0.16 ? '좋아요! 지금 치면 돼요' : '대충 맞아도 괜찮아요. 공 앞에서 손목만 톡!');
+        }
+      }
+    } else {
+      landmarks = null;
+      updateGripState();
+      snapPow *= 0.80;
+      h.clearRect(0, 0, W, H);
+      if (gameState === 'playing' || gameState === 'tutorial') {
+        setStatus('손을 카메라에 보여주세요');
+      }
+    }
+  });
+
+  const cam = new Camera(vid, {
+    onFrame: async () => { await hands.send({ image: vid }); },
+    width: 1280, height: 720,
+  });
+  cam.start();
+}
+
+// ── Init ──────────────────────────────────────────────
+async function init() {
+  try {
+    await setupCam();
+    setupHands();
+  } catch (e) {
+    console.warn('Camera not available:', e);
+  }
+  updateHUD();
+  showStart();
+  refreshBestScore();
+}
+
+init();
+</script>
+</body>
+</html>
